@@ -1,0 +1,19 @@
+## Stratospheric ozone/UV profile workspace rules (WSL + venv)
+
+- Always run shell commands in **WSL (Ubuntu)**.
+- Always run commands from the repo root:
+  - `/mnt/c/Users/jdobe/Downloads/Stratospheric_baloon/stratospheric-ozone-uv-profile`
+- Always use the project virtual environment at `./.venv`.
+
+### Python
+- Use `./py ...` for all Python commands (this guarantees the venv interpreter).
+  - Example: `./py cams_download3.py`
+- Do **not** use `python`, `python3`, or any global interpreter directly unless you are creating the venv.
+
+### pip
+- Use `./pip ...` for all package operations (this runs `python -m pip` inside the venv).
+  - Example: `./pip install -r requirements.txt`
+- Do **not** use global `pip`/`pip3`.
+
+
+

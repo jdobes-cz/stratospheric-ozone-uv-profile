@@ -1,0 +1,34 @@
+# ---- data path ----
+data_files_path libRantran/libRadtran-2.0.6/data
+
+# ---- location & time (UTC) ----
+latitude N 50.798056
+longitude E 4.357500
+time 2026 04 23 08 00 00
+
+# ---- atmosphere baseline ----
+atmosphere_file midlatitude_summer
+
+# ---- overwrite ozone profile ----
+mol_file O3 o3_mmr.dat mmr
+
+# ---- radiative transfer setup ----
+rte_solver disort
+number_of_streams 8
+pseudospherical
+
+# ---- spectral settings ----
+mol_abs_param crs
+source solar /mnt/c/Users/jdobe/Downloads/Stratospheric_baloon/stratospheric-ozone-uv-profile/libRantran/libRadtran-2.0.6/data/solar_flux/kurudz_0.1nm.dat
+wavelength 250 1100
+spline 250 1100 1
+
+# ---- surface ----
+albedo 0.05
+
+# ---- output altitude ----
+zout_sea 0
+
+# ---- output columns ----
+output_user lambda sza zout eup edir edn eglo
+quiet
