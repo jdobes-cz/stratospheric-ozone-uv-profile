@@ -13,6 +13,7 @@ Step 2: Interpolate for specific point and save data.
  - It reads cams_o3_profile_20260115_0000.nc and creates o3_mmr.dat file.
 
 Step 3: Donwload and build librantran library.
+ - Should reside in stratospheric-ozone-uv-profile/libRantran/libRadtran-2.0.6/...
 
 Step 4: Calculate UV in upward direction
  - (If you want to) check/adjust uvspec_template.inp
