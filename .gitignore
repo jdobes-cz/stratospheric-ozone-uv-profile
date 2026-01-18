@@ -71,4 +71,12 @@ libRantran/*
 loop/run_*km.inp
 loop/eup_*km.dat
 
+# -------------------------
+# ltr-390uv-01-response generated debug/overlay images
+# -------------------------
+ltr-390uv-01-response/als_response_overlay_zoom_axes.png
+ltr-390uv-01-response/uv_response_bbox_debug.png
+ltr-390uv-01-response/uv_response_overlay_full.png
+ltr-390uv-01-response/uv_response_overlay_zoom_axes.png
+
 
