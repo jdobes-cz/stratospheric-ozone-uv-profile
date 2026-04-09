@@ -1,19 +1,26 @@
 // UV + Atmospheric Pressure + Ozone + RTC + EEPROM + microSD data logger
 // Arduino Pro Mini (ATmega328PB, 3.3V/8MHz)
-// LTR390 (0x53) + MS5611 (0x76) + SEN0321 (0x73) + DS3231 (0x68) + AT24C256 (0x50) over shared I2C
+// LTR390 (0x53) + MS5607 (0x76) + SEN0321 (0x73) + DS3231 (0x68) + AT24C256 (0x50) over shared I2C
 // LaskaKit microSD module on SPI (CS = D10)
 //
-// Data is written to EEPROM (primary) and microSD (backup) simultaneously.
+// Data is written to EEPROM (every 30s) and microSD (every 10s) on separate intervals.
 // microSD stores human-readable CSV files named by date (e.g. 20260325.CSV).
 //
 // Serial commands:
-//   record <seconds>  - start recording at given interval (default 10s)
+//   record <seconds>  - start recording (seconds sets SD interval, EEPROM fixed at 30s)
 //   stop              - stop recording
 //   dump              - dump all EEPROM records as CSV
 //   dumpsd            - dump current day's SD file over serial
 //   status            - show EEPROM + SD usage
 //   clear             - erase all EEPROM records
 //   settime YYYY MM DD HH MM SS - set RTC time
+//
+// Sensor flags (sensor_flags column in CSV/EEPROM):
+//   bit 0 (0x01) - UVS: LTR390 UV data valid
+//   bit 1 (0x02) - ALS: LTR390 ambient light data valid
+//   bit 2 (0x04) - MS5607: pressure/temperature data valid
+//   bit 3 (0x08) - O3: ozone reading valid (>=0)
+//   All OK = 15 (0x0F)
 
 #include <Wire.h>
 #include <SPI.h>
@@ -29,9 +36,16 @@
 #define EEPROM_ADDR       0x50
 #define EEPROM_SIZE       32768UL  // 32KB
 #define HEADER_SIZE       8        // 4 bytes record count + 4 bytes next write addr
-#define RECORD_SIZE       34       // bytes per data record
+#define RECORD_SIZE       35       // bytes per data record (34 data + 1 sensor flags)
+
 #define MAX_RECORDS       ((EEPROM_SIZE - HEADER_SIZE) / RECORD_SIZE)
 #define EEPROM_PAGE_SIZE  64
+
+// Sensor status flag bits
+#define FLAG_UVS_OK    0x01
+#define FLAG_ALS_OK    0x02
+#define FLAG_MS5607_OK 0x04
+#define FLAG_O3_OK     0x08
 
 // microSD config
 #define SD_CS_PIN         10
@@ -42,36 +56,32 @@ char cmdBuf[CMD_BUF_SIZE];
 uint8_t cmdIdx = 0;
 
 LTR390 ltr390;
-MS5611 ms5611(0x76);
+MS5607 ms5607(0x76);
 DFRobot_OzoneSensor ozone;
 RTC_DS3231 rtc;
 
-bool recording = false;
-uint16_t recordInterval = 10;  // seconds between recordings
+bool ltr390Available = false;
+bool ms5607Available = false;
+bool ozoneAvailable = false;
+bool rtcAvailable = false;
+uint32_t bootTimeOffset = 0;  // random offset when RTC unavailable
+
+bool recording = true; // recording by default
+uint16_t recordInterval = 10;  // seconds between SD recordings
 unsigned long lastRecordTime = 0;
+uint16_t eepromInterval = 30;  // seconds between EEPROM recordings
+unsigned long lastEepromTime = 0;
 uint32_t recordCount = 0;
 uint32_t nextWriteAddr = HEADER_SIZE;
 bool sdAvailable = false;
+uint8_t ltr390Fails = 0;
+uint8_t ms5607Fails = 0;
+uint8_t ozoneFails = 0;
+#define SENSOR_REINIT_AFTER 3  // reinit after this many consecutive failures
+unsigned long lastSDRetry = 0;
+#define SD_RETRY_INTERVAL_MS 30000UL  // retry SD every 30 seconds
 
 // --- AT24C256 low-level functions ---
-
-void eepromWriteByte(uint16_t addr, uint8_t data) {
-  Wire.beginTransmission((uint8_t)EEPROM_ADDR);
-  Wire.write((uint8_t)(addr >> 8));
-  Wire.write((uint8_t)(addr & 0xFF));
-  Wire.write(data);
-  Wire.endTransmission();
-  delay(5);
-}
-
-uint8_t eepromReadByte(uint16_t addr) {
-  Wire.beginTransmission((uint8_t)EEPROM_ADDR);
-  Wire.write((uint8_t)(addr >> 8));
-  Wire.write((uint8_t)(addr & 0xFF));
-  Wire.endTransmission();
-  Wire.requestFrom((uint8_t)EEPROM_ADDR, (uint8_t)1);
-  return Wire.available() ? Wire.read() : 0xFF;
-}
 
 void eepromWriteBlock(uint16_t addr, const uint8_t *data, uint8_t len) {
   while (len > 0) {
@@ -184,7 +194,7 @@ void sdWriteHeaderIfNew(const char *filename) {
   if (!SD.exists(filename)) {
     File f = SD.open(filename, FILE_WRITE);
     if (f) {
-      f.println(F("timestamp,als,lux,uvs,uvi,temp_c,pressure_mbar,ozone_ppb,rtc_temp_c"));
+      f.println(F("timestamp,als,lux,uvs,uvi,temp_c,pressure_mbar,ozone_ppb,rtc_temp_c,sensor_flags"));
       f.close();
     }
   }
@@ -192,8 +202,19 @@ void sdWriteHeaderIfNew(const char *filename) {
 
 void sdWriteRecord(const DateTime &dt, uint32_t als, float lux,
                    uint32_t uvs, float uvi, float temperature,
-                   float pressure, int16_t ozonePpb, float rtcTemp) {
-  if (!sdAvailable) return;
+                   float pressure, int16_t ozonePpb, float rtcTemp,
+                   uint8_t sensorFlags) {
+  if (!sdAvailable) {
+    unsigned long now_ms = millis();
+    if (now_ms - lastSDRetry >= SD_RETRY_INTERVAL_MS) {
+      lastSDRetry = now_ms;
+      if (SD.begin(SD_CS_PIN)) {
+        sdAvailable = true;
+        Serial.println(F("SD reconnected"));
+      }
+    }
+    if (!sdAvailable) return;
+  }
 
   char filename[13];
   getSDFilename(dt, filename);
@@ -217,10 +238,17 @@ void sdWriteRecord(const DateTime &dt, uint32_t als, float lux,
     f.print(',');
     f.print(ozonePpb);
     f.print(',');
-    f.println(rtcTemp, 2);
+    f.print(rtcTemp, 2);
+    f.print(',');
+    f.println(sensorFlags);
     f.close();
   } else {
-    Serial.println(F("SD write failed!"));
+    Serial.println(F("SD write failed, reinit..."));
+    sdAvailable = false;
+    if (SD.begin(SD_CS_PIN)) {
+      sdAvailable = true;
+      Serial.println(F("SD recovered"));
+    }
   }
 }
 
@@ -228,7 +256,8 @@ void sdWriteRecord(const DateTime &dt, uint32_t als, float lux,
 
 bool writeRecord(uint32_t timestamp, uint32_t als, float lux,
                  uint32_t uvs, float uvi, float temperature,
-                 float pressure, int16_t ozonePpb, float rtcTemp) {
+                 float pressure, int16_t ozonePpb, float rtcTemp,
+                 uint8_t sensorFlags) {
   if (recordCount >= MAX_RECORDS) {
     Serial.println(F("EEPROM full!"));
     return false;
@@ -246,6 +275,7 @@ bool writeRecord(uint32_t timestamp, uint32_t als, float lux,
   memcpy(buf + offset, &pressure, 4);     offset += 4;
   memcpy(buf + offset, &ozonePpb, 2);     offset += 2;
   memcpy(buf + offset, &rtcTemp, 4);      offset += 4;
+  buf[offset] = sensorFlags;              offset += 1;
 
   eepromWriteBlock(nextWriteAddr, buf, RECORD_SIZE);
 
@@ -262,9 +292,9 @@ void dumpRecords() {
     return;
   }
 
-  Serial.println(F("timestamp,als,lux,uvs,uvi,temp_c,pressure_mbar,ozone_ppb,rtc_temp_c"));
+  Serial.println(F("timestamp,als,lux,uvs,uvi,temp_c,pressure_mbar,ozone_ppb,rtc_temp_c,sensor_flags"));
 
-  uint16_t addr = HEADER_SIZE;
+  uint32_t addr = HEADER_SIZE;
   for (uint32_t i = 0; i < recordCount; i++) {
     uint8_t buf[RECORD_SIZE];
     eepromReadBlock(addr, buf, RECORD_SIZE);
@@ -272,6 +302,7 @@ void dumpRecords() {
     uint32_t timestamp, als, uvs;
     float lux, uvi, temperature, pressure, rtcTemp;
     int16_t ozonePpb;
+    uint8_t sensorFlags;
     uint8_t offset = 0;
 
     memcpy(&timestamp, buf + offset, 4);    offset += 4;
@@ -283,6 +314,7 @@ void dumpRecords() {
     memcpy(&pressure, buf + offset, 4);     offset += 4;
     memcpy(&ozonePpb, buf + offset, 2);     offset += 2;
     memcpy(&rtcTemp, buf + offset, 4);      offset += 4;
+    sensorFlags = buf[offset];              offset += 1;
 
     DateTime dt(timestamp);
     printDateTime(Serial, dt);
@@ -302,7 +334,9 @@ void dumpRecords() {
     Serial.print(',');
     Serial.print(ozonePpb);
     Serial.print(',');
-    Serial.println(rtcTemp, 2);
+    Serial.print(rtcTemp, 2);
+    Serial.print(',');
+    Serial.println(sensorFlags);
 
     addr += RECORD_SIZE;
   }
@@ -393,8 +427,10 @@ void printStatus() {
   Serial.print(F("Recording: "));
   Serial.println(recording ? F("ON") : F("OFF"));
   if (recording) {
-    Serial.print(F("Interval: "));
+    Serial.print(F("SD interval: "));
     Serial.print(recordInterval);
+    Serial.print(F("s, EEPROM interval: "));
+    Serial.print(eepromInterval);
     Serial.println('s');
   }
 }
@@ -414,7 +450,7 @@ int parseIntAt(const char *buf, uint8_t *pos) {
 void processCommand(const char *cmd) {
   while (*cmd == ' ') cmd++;
 
-  if (strncmp_P(cmd, PSTR("record"), 6) == 0) {
+  if (strcmp_P(cmd, PSTR("record")) == 0 || strncmp_P(cmd, PSTR("record "), 7) == 0) {
     if (cmd[6] == ' ') {
       uint8_t pos = 7;
       int val = parseIntAt(cmd, &pos);
@@ -422,8 +458,11 @@ void processCommand(const char *cmd) {
     }
     recording = true;
     lastRecordTime = 0;
-    Serial.print(F("Recording started, interval: "));
+    lastEepromTime = 0;
+    Serial.print(F("Recording started, SD: "));
     Serial.print(recordInterval);
+    Serial.print(F("s, EEPROM: "));
+    Serial.print(eepromInterval);
     Serial.println('s');
   }
   else if (strcmp_P(cmd, PSTR("stop")) == 0) {
@@ -433,7 +472,7 @@ void processCommand(const char *cmd) {
   else if (strcmp_P(cmd, PSTR("dump")) == 0) {
     dumpRecords();
   }
-  else if (strncmp_P(cmd, PSTR("dumpsd"), 6) == 0) {
+  else if (strcmp_P(cmd, PSTR("dumpsd")) == 0 || strncmp_P(cmd, PSTR("dumpsd "), 7) == 0) {
     if (cmd[6] == ' ') {
       uint8_t pos = 7;
       int y = parseIntAt(cmd, &pos);
@@ -453,17 +492,33 @@ void processCommand(const char *cmd) {
     recording = false;
     clearRecords();
   }
-  else if (strncmp_P(cmd, PSTR("settime"), 7) == 0) {
-    uint8_t pos = 8;
-    int parts[6];
-    for (uint8_t i = 0; i < 6; i++) {
-      parts[i] = parseIntAt(cmd, &pos);
+  else if (strcmp_P(cmd, PSTR("settime")) == 0 || strncmp_P(cmd, PSTR("settime "), 8) == 0) {
+    if (cmd[7] != ' ') {
+      Serial.println(F("Usage: settime YYYY MM DD HH MM SS"));
+    } else {
+      uint8_t pos = 8;
+      int parts[6];
+      for (uint8_t i = 0; i < 6; i++) {
+        parts[i] = parseIntAt(cmd, &pos);
+      }
+      if (parts[0] < 2000 || parts[0] > 2099 ||
+          parts[1] < 1 || parts[1] > 12 ||
+          parts[2] < 1 || parts[2] > 31 ||
+          parts[3] > 23 || parts[4] > 59 || parts[5] > 59) {
+        Serial.println(F("Invalid date/time!"));
+      } else {
+        rtc.adjust(DateTime(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]));
+        Serial.println(F("RTC time set."));
+      }
     }
-    rtc.adjust(DateTime(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]));
-    Serial.println(F("RTC time set."));
+  }
+  else if (strcmp_P(cmd, PSTR("help")) == 0) {
+    Serial.println(F("Commands: record [sec], stop, dump, dumpsd [YYYY MM DD], status, clear, settime YYYY MM DD HH MM SS"));
   }
   else {
-    Serial.println(F("Commands: record [sec], stop, dump, dumpsd [YYYY MM DD], status, clear, settime YYYY MM DD HH MM SS"));
+    Serial.print(F("Unknown: "));
+    Serial.println(cmd);
+    Serial.println(F("Type 'help' for commands"));
   }
 }
 
@@ -475,38 +530,48 @@ void setup() {
   Wire.begin();
 
   // Init LTR390
-  if (!ltr390.init()) {
-    Serial.println(F("LTR390 not found!"));
-    while (1) delay(1000);
+  if (ltr390.init()) {
+    ltr390.setGain(LTR390_GAIN_3);
+    ltr390.setResolution(LTR390_RESOLUTION_18BIT);
+    ltr390.enable(true);
+    ltr390Available = true;
+    Serial.println(F("LTR390 ready"));
+  } else {
+    Serial.println(F("LTR390 not found - skipping"));
   }
 
-  ltr390.setGain(LTR390_GAIN_3);
-  ltr390.setResolution(LTR390_RESOLUTION_18BIT);
-  ltr390.enable(true);
-
-  // Init MS5611
-  if (!ms5611.begin()) {
-    Serial.println(F("MS5611 not found!"));
-    while (1) delay(1000);
+  // Init MS5607
+  if (ms5607.begin()) {
+    ms5607.setOversampling(OSR_ULTRA_HIGH);
+    ms5607Available = true;
+    Serial.println(F("MS5607 ready"));
+  } else {
+    Serial.println(F("MS5607 not found - skipping"));
   }
 
   // Init SEN0321 ozone sensor
-  while (!ozone.begin(OZONE_ADDRESS_3)) {
-    Serial.println(F("SEN0321 not found!"));
-    delay(1000);
+  if (ozone.begin(OZONE_ADDRESS_3)) {
+    ozone.setModes(MEASURE_MODE_PASSIVE);
+    ozoneAvailable = true;
+    Serial.println(F("SEN0321 ready"));
+  } else {
+    Serial.println(F("SEN0321 not found - skipping"));
   }
-
-  ozone.setModes(MEASURE_MODE_PASSIVE);
 
   // Init DS3231 RTC
-  if (!rtc.begin()) {
-    Serial.println(F("DS3231 not found!"));
-    while (1) delay(1000);
-  }
-
-  if (rtc.lostPower()) {
-    Serial.println(F("RTC lost power, setting compile time..."));
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  if (rtc.begin()) {
+    rtcAvailable = true;
+    Serial.println(F("DS3231 ready"));
+    if (rtc.lostPower()) {
+      Serial.println(F("RTC lost power, setting compile time..."));
+      rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    }
+  } else {
+    // Random offset so each power-up has distinct timestamps
+    randomSeed(analogRead(A0) ^ analogRead(A1) ^ micros());
+    bootTimeOffset = random(100000UL, 999999UL);
+    Serial.print(F("DS3231 not found - using millis() + offset "));
+    Serial.println(bootTimeOffset);
   }
 
   // Init AT24C256 EEPROM
@@ -522,9 +587,13 @@ void setup() {
   }
 
   Serial.println(F("All sensors + storage ready"));
+  Serial.print(F("Compiled: "));
+  Serial.print(F(__DATE__));
+  Serial.print(' ');
+  Serial.println(F(__TIME__));
   Serial.println(F("Ozone warming up (~3 min)..."));
   printStatus();
-  Serial.println(F("Type 'record' to start, 'help' for cmds"));
+  Serial.println(F("Recording auto-started. Type 'help' for cmds"));
 }
 
 void loop() {
@@ -543,42 +612,103 @@ void loop() {
   }
 
   // Read all sensors
-  // sensor read cycle
-
-  DateTime now = rtc.now();
-  float rtcTemp = rtc.getTemperature();
+  DateTime now = rtcAvailable ? rtc.now() : DateTime((uint32_t)(millis() / 1000) + bootTimeOffset);
+  float rtcTemp = rtcAvailable ? rtc.getTemperature() : 0;
 
   // Read UV
-  ltr390.setMode(LTR390_MODE_UVS);
-  delay(300);
-
   uint32_t uvs = 0;
-  float uvi = 0;
-  if (ltr390.newDataAvailable()) {
-    uvs = ltr390.readUVS();
-    uvi = ltr390.getUVI();
+  float uvi = NAN;
+  bool uvsOk = false;
+  if (ltr390Available) {
+    ltr390.setMode(LTR390_MODE_UVS);
+    delay(300);
+    if (ltr390.newDataAvailable()) {
+      uvs = ltr390.readUVS();
+      uvi = ltr390.getUVI();
+      uvsOk = true;
+    }
   }
 
   // Read ambient light
-  ltr390.setMode(LTR390_MODE_ALS);
-  delay(300);
-
   uint32_t als = 0;
-  float lux = 0;
-  if (ltr390.newDataAvailable()) {
-    als = ltr390.readALS();
-    lux = ltr390.getLux();
+  float lux = NAN;
+  bool alsOk = false;
+  if (ltr390Available) {
+    ltr390.setMode(LTR390_MODE_ALS);
+    delay(300);
+    if (ltr390.newDataAvailable()) {
+      als = ltr390.readALS();
+      lux = ltr390.getLux();
+      alsOk = true;
+    }
+  }
+
+  // Reinit LTR390 if either mode failed consecutively
+  if (!uvsOk || !alsOk) {
+    ltr390Fails++;
+    if (ltr390Fails >= SENSOR_REINIT_AFTER) {
+      Serial.println(F("LTR390 reinit..."));
+      if (ltr390.init()) {
+        ltr390.setGain(LTR390_GAIN_3);
+        ltr390.setResolution(LTR390_RESOLUTION_18BIT);
+        ltr390.enable(true);
+        ltr390Available = true;
+        Serial.println(F("LTR390 recovered"));
+      }
+      ltr390Fails = 0;
+    }
+  } else {
+    ltr390Fails = 0;
   }
 
   // Read pressure + temperature
-  ms5611.read();
-  float temperature = ms5611.getTemperature();
-  float pressure = ms5611.getPressure();
+  float temperature = NAN;
+  float pressure = NAN;
+  bool ms5607Ok = false;
+  if (ms5607Available) {
+    ms5607Ok = (ms5607.read() == MS5611_READ_OK);
+  }
+  if (ms5607Ok) {
+    temperature = ms5607.getTemperature();
+    pressure = ms5607.getPressure();
+    ms5607Fails = 0;
+  } else {
+    ms5607Fails++;
+    if (ms5607Fails >= SENSOR_REINIT_AFTER) {
+      Serial.println(F("MS5607 reinit..."));
+      if (ms5607.begin()) {
+        ms5607.setOversampling(OSR_ULTRA_HIGH);
+        ms5607Available = true;
+        Serial.println(F("MS5607 recovered"));
+      }
+      ms5607Fails = 0;
+    } else if (ms5607Available) {
+      Serial.println(F("MS5607 read error!"));
+    }
+  }
 
-  // Read ozone
-  int16_t ozonePpb = ozone.readOzoneData(COLLECT_NUMBER);
-
-
+  // Read ozone (I2C presence check first — library returns 0 when disconnected)
+  int16_t ozonePpb = -1;
+  if (ozoneAvailable) {
+    Wire.beginTransmission(OZONE_ADDRESS_3);
+    if (Wire.endTransmission() == 0) {
+      ozonePpb = ozone.readOzoneData(COLLECT_NUMBER);
+    }
+  }
+  if (ozonePpb < 0) {
+    ozoneFails++;
+    if (ozoneFails >= SENSOR_REINIT_AFTER) {
+      Serial.println(F("SEN0321 reinit..."));
+      if (ozone.begin(OZONE_ADDRESS_3)) {
+        ozone.setModes(MEASURE_MODE_PASSIVE);
+        ozoneAvailable = true;
+        Serial.println(F("SEN0321 recovered"));
+      }
+      ozoneFails = 0;
+    }
+  } else {
+    ozoneFails = 0;
+  }
 
   // Print live readings
   printDateTime(Serial, now);
@@ -605,22 +735,34 @@ void loop() {
   Serial.print(rtcTemp, 2);
   Serial.println('C');
 
-  // Record to EEPROM + SD if active
+  // Record to SD and EEPROM on separate intervals
   if (recording) {
     unsigned long now_ms = millis();
+    uint32_t unixTime = now.unixtime();
+
+    uint8_t sensorFlags = 0;
+    if (uvsOk) sensorFlags |= FLAG_UVS_OK;
+    if (alsOk) sensorFlags |= FLAG_ALS_OK;
+    if (ms5607Ok) sensorFlags |= FLAG_MS5607_OK;
+    if (ozonePpb >= 0) sensorFlags |= FLAG_O3_OK;
+
+    // SD card: every recordInterval (10s)
     if (lastRecordTime == 0 || (now_ms - lastRecordTime) >= (unsigned long)recordInterval * 1000UL) {
       lastRecordTime = now_ms;
-      uint32_t unixTime = now.unixtime();
+      sdWriteRecord(now, als, lux, uvs, uvi, temperature, pressure, ozonePpb, rtcTemp, sensorFlags);
+      if (sdAvailable) Serial.println(F("[SD]"));
+    }
 
-      bool eepromOk = writeRecord(unixTime, als, lux, uvs, uvi, temperature, pressure, ozonePpb, rtcTemp);
-
-      sdWriteRecord(now, als, lux, uvs, uvi, temperature, pressure, ozonePpb, rtcTemp);
-
+    // EEPROM: every eepromInterval (30s)
+    if (lastEepromTime == 0 || (now_ms - lastEepromTime) >= (unsigned long)eepromInterval * 1000UL) {
+      lastEepromTime = now_ms;
+      bool eepromOk = writeRecord(unixTime, als, lux, uvs, uvi, temperature, pressure, ozonePpb, rtcTemp, sensorFlags);
       if (eepromOk) {
-        Serial.print(F("[REC #"));
+        Serial.print(F("[EEPROM #"));
         Serial.print(recordCount);
-        if (sdAvailable) Serial.print(F("+SD"));
         Serial.println(']');
+      } else {
+        Serial.println(F("[EEPROM full]"));
       }
     }
   }
