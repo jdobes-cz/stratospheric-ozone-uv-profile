@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Vltava — Stratospheric Balloon Experiment</title>
+  <meta name="description" content="A student-led stratospheric balloon experiment measuring UV radiation and ozone concentration. The English College in Prague, ASGARD-XV.">
+  <meta property="og:title" content="Project Vltava — Stratospheric Balloon Experiment">
+  <meta property="og:description" content="Four students and a mentor sending a scientific payload to 33 km altitude aboard a stratospheric balloon.">
+  <meta property="og:image" content="CubeSat Against Milky Way and Earth.png">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="lang-en">
+
+  <!-- Background canvas for lightfall + stars + mouse glow -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="dot"></span>
+      <span>Project Vltava</span>
+    </div>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">&#9776;</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="#mission"><span data-lang-en>Mission</span><span data-lang-cs>Mise</span></a></li>
+      <li><a href="#experiment"><span data-lang-en>Experiment</span><span data-lang-cs>Experiment</span></a></li>
+      <li><a href="#team"><span data-lang-en>Team</span><span data-lang-cs>T&#xFD;m</span></a></li>
+      <li><a href="#timeline"><span data-lang-en>Timeline</span><span data-lang-cs>Harmonogram</span></a></li>
+      <li><a href="#gallery"><span data-lang-en>Gallery</span><span data-lang-cs>Galerie</span></a></li>
+      <li><a href="https://github.com/jdobes-cz/stratospheric-ozone-uv-profile" target="_blank" rel="noopener noreferrer" class="nav-github" aria-label="GitHub repository"><svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></li>
+      <li><button class="lang-toggle" id="lang-toggle">CZ</button></li>
+    </ul>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-content">
+      <div class="hero-badge" data-lang-en>
+        <span class="pulse"></span>
+        ASGARD-XV &middot; Experiment 14
+      </div>
+      <div class="hero-badge" data-lang-cs>
+        <span class="pulse"></span>
+        ASGARD-XV &middot; Experiment 14
+      </div>
+
+      <h1 data-lang-en>Project Vltava</h1>
+      <h1 data-lang-cs>Projekt Vltava</h1>
+
+      <div class="hero-subtitle" data-lang-en>Reaching the Stratosphere</div>
+      <div class="hero-subtitle" data-lang-cs>Do stratosf&#xe9;ry</div>
+
+      <p class="hero-tagline" data-lang-en>
+        A student-led experiment aboard a stratospheric balloon, measuring UV radiation and ozone concentration at the edge of space.
+      </p>
+      <p class="hero-tagline" data-lang-cs>
+        Studentský experiment, vynesený stratosferickým balónem, který měří koncentraci ozonu na hranici vesmíru.
+      </p>
+
+      <a href="#mission" class="hero-cta" data-lang-en>Discover More &darr;</a>
+      <a href="#mission" class="hero-cta" data-lang-cs>Zjistit v&#xED;ce &darr;</a>
+    </div>
+
+    <div class="scroll-indicator">
+      <div class="line"></div>
+      <span data-lang-en>SCROLL</span>
+      <span data-lang-cs>POSU&#x147;TE DOL&#x16E;</span>
+    </div>
+  </header>
+
+  <!-- Mission -->
+  <div class="section-divider"></div>
+  <section id="mission">
+    <div class="reveal">
+      <span class="section-label" data-lang-en>Mission</span>
+      <span class="section-label" data-lang-cs>Mise</span>
+      <h2 data-lang-en>From Prague to the Stratosphere</h2>
+      <h2 data-lang-cs>Z Prahy do stratosf&#xe9;ry</h2>
+      <p data-lang-en>
+        Four students from The English College in Prague are building a scientific payload to fly on a stratospheric balloon to an altitude of approximately 33&nbsp;km. The experiment measures the vertical profile of ozone concentration and its effect on ultraviolet radiation.
+      </p>
+      <p data-lang-cs>
+        &#x10C;ty&#x159;i studenti z The English College in Prague konstruuj&#xed; v&#x11B;deck&#xe9; za&#x159;&#xED;zen&#xED;, kter&#xe9; polet&#xED; na stratosf&#xe9;rick&#xe9;m bal&#xF3;nu do v&#xFD;&#x161;ky p&#x159;ibli&#x17E;n&#x11B; 33&nbsp;km. Experiment bude m&#x11B;&#x159;it vertik&#xe1;ln&#xED; profil koncentrace oz&#xF3;nu a jeho vliv na ultrafialov&#xe9; z&#xe1;&#x159;en&#xED;.
+      </p>
+    </div>
+
+    <div class="mission-grid reveal">
+      <div class="mission-card glass-card">
+        <div class="icon">&#127758;</div>
+        <h3 data-lang-en>The Program</h3>
+        <h3 data-lang-cs>Program</h3>
+        <p data-lang-en>Part of ASGARD-XV, a hands-on space education program run by Sint-Pieterscollege Jette (Brussels) with Belgian research partners. Balloons launch from the Royal Meteorological Institute.</p>
+        <p data-lang-cs>Sou&#x10D;&#xe1;st programu ASGARD-XV &ndash; praktick&#xe9;ho vzd&#x11B;l&#xe1;vac&#xED;ho kosmick&#xe9;ho programu organizovan&#xe9;ho &#x161;kolou Sint-Pieterscollege Jette (Brusel) ve spolupr&#xe1;ci s belgick&#xFD;mi v&#xFD;zkumn&#xFD;mi partnery. Bal&#xF3;ny startuj&#xED; z Kr&#xe1;lovsk&#xe9;ho meteorologick&#xe9;ho &#xFA;stavu.</p>
+      </div>
+      <div class="mission-card glass-card">
+        <div class="icon">&#128300;</div>
+        <h3 data-lang-en>The Science</h3>
+        <h3 data-lang-cs>V&#x11B;da</h3>
+        <p data-lang-en>Measuring how ozone in the stratosphere absorbs UVB radiation more strongly than UVA, correlating ozone concentration with UV intensity at each altitude layer during the balloon's ascent.</p>
+        <p data-lang-cs>M&#x11B;&#x159;en&#xED; toho, jak oz&#xF3;n ve stratosf&#xe9;&#x159;e absorbuje UVB z&#xe1;&#x159;en&#xED; v&#xFD;razn&#x11B;ji ne&#x17E; UVA, a korelace koncentrace oz&#xF3;nu s intenzitou UV z&#xe1;&#x159;en&#xED; v&nbsp;jednotliv&#xFD;ch v&#xFD;&#x161;kov&#xFD;ch vrstv&#xe1;ch b&#x11B;hem stoup&#xe1;n&#xED; bal&#xF3;nu.</p>
+      </div>
+      <div class="mission-card glass-card">
+        <div class="icon">&#128640;</div>
+        <h3 data-lang-en>The Launch</h3>
+        <h3 data-lang-cs>Start</h3>
+        <p data-lang-en>April 23, 2026, from the campus of the Royal Meteorological Institute in Ukkel, Brussels. The balloon ascends for about 2 hours, reaching approximately 33 km before burst and parachute recovery.</p>
+        <p data-lang-cs>23.&nbsp;dubna 2026 z are&#xe1;lu Kr&#xe1;lovsk&#xe9;ho meteorologick&#xe9;ho &#xFA;stavu v&nbsp;Ukkelu, Brusel. Bal&#xF3;n stoup&#xe1; p&#x159;ibli&#x17E;n&#x11B; dv&#x11B; hodiny, dos&#xe1;hne v&#xFD;&#x161;ky okolo 33&nbsp;km a po prasknut&#xED; je pomoc&#xED; pad&#xe1;ku vr&#xe1;cen na zem.</p>
+      </div>
+    </div>
+
+    <div class="stats-row reveal">
+      <div class="stat">
+        <div class="number" data-count="33">0</div>
+        <div class="label" data-lang-en>km altitude</div>
+        <div class="label" data-lang-cs>km nadmo&#x159;sk&#xe1; v&#xFD;&#x161;ka</div>
+      </div>
+      <div class="stat">
+        <div class="number" data-count="190">0</div>
+        <div class="label" data-lang-en>gram payload limit</div>
+        <div class="label" data-lang-cs>gram&#x16F; max. hmotnost</div>
+      </div>
+      <div class="stat">
+        <div class="number" data-count="5">0</div>
+        <div class="label" data-lang-en>team members</div>
+        <div class="label" data-lang-cs>&#x10D;len&#x16F; t&#xFD;mu</div>
+      </div>
+      <div class="stat">
+        <div class="number" data-count="6">0</div>
+        <div class="label" data-lang-en>sensors on board</div>
+        <div class="label" data-lang-cs>senzor&#x16F; na palub&#x11B;</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Experiment -->
+  <div class="section-divider"></div>
+  <section id="experiment">
+    <div class="reveal">
+      <span class="section-label" data-lang-en>The Experiment</span>
+      <span class="section-label" data-lang-cs>Experiment</span>
+      <h2 data-lang-en>UV Radiation &amp; Ozone Profile</h2>
+      <h2 data-lang-cs>UV z&#xe1;&#x159;en&#xED; a profil oz&#xF3;nu</h2>
+    </div>
+
+    <div class="experiment-content reveal">
+      <div>
+        <p data-lang-en>
+          The investigation was originally focused on Single Event Upsets (SEU) in memory chips caused by cosmic radiation. Detailed calculations showed that the probability of observing SEUs during the short flight window was too low. The team pivoted to a question with strong scientific relevance: how ozone concentration in the stratosphere affects UV radiation intensity.
+        </p>
+        <p data-lang-cs>
+          V&#xFD;zkum se p&#x16F;vodn&#x11B; zam&#x11B;&#x159;oval na jednor&#xe1;zov&#xe9; náhodné poruchy (SEU) v&nbsp;pam&#x11B;&#x165;ov&#xFD;ch &#x10D;ipech zp&#x16F;soben&#xe9; kosmick&#xFD;m z&#xe1;&#x159;en&#xED;m. Podrobn&#xe9; v&#xFD;po&#x10D;ty uk&#xe1;zaly, &#x17E;e pravd&#x11B;podobnost pozorov&#xe1;n&#xED; SEU b&#x11B;hem kr&#xe1;tk&#xe9;ho letu je p&#x159;&#xED;li&#x161; n&#xED;zk&#xe1;. T&#xFD;m se proto p&#x159;eorientoval na v&#x11B;decky v&#xFD;znamnou ot&#xe1;zku: jak koncentrace oz&#xF3;nu ve stratosf&#xe9;&#x159;e ovliv&#x148;uje intenzitu UV z&#xe1;&#x159;en&#xED;.
+        </p>
+
+        <h3 style="margin-top:2rem;" data-lang-en>Hypotheses</h3>
+        <h3 style="margin-top:2rem;" data-lang-cs>Hypot&#xe9;zy</h3>
+        <ul class="hypothesis-list">
+          <li data-lang-en>Ozone concentration will increase with altitude into the stratosphere, reach a maximum, and then level off or decrease.</li>
+          <li data-lang-cs>Koncentrace oz&#xF3;nu bude s&nbsp;nadmo&#x159;skou v&#xFD;&#x161;kou r&#x16F;st a&#x17E; do stratosf&#xe9;ry, dos&#xe1;hne maxima a pot&#xe9; se ust&#xe1;l&#xED; nebo klesne.</li>
+          <li data-lang-en>UVB intensity will show a stronger decrease in regions of higher ozone concentration than UVA.</li>
+          <li data-lang-cs>Intenzita UVB bude v&nbsp;oblastech s&nbsp;vy&#x161;&#x161;&#xED; koncentrac&#xED; oz&#xF3;nu klesat v&#xFD;razn&#x11B;ji ne&#x17E; intenzita UVA.</li>
+          <li data-lang-en>There will be a negative correlation between ozone concentration and UVB intensity.</li>
+          <li data-lang-cs>Mezi koncentrac&#xED; oz&#xF3;nu a intenzitou UVB bude negativn&#xED; korelace.</li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 data-lang-en>Hardware</h3>
+        <h3 data-lang-cs>Hardware</h3>
+        <p data-lang-en style="margin-bottom:1rem;">The payload uses an Arduino Pro Mini as the central controller in the following arrangement:</p>
+        <p data-lang-cs style="margin-bottom:1rem;">Za&#x159;&#xED;zen&#xED; pou&#x17E;&#xED;v&#xe1; Arduino Pro Mini jako centr&#xe1;ln&#xED; &#x159;&#xED;dic&#xED; jednotku v n&#xe1;sleduj&#xed;c&#xed;m uspo&#x159;&#xe1;d&#xe1;n&#xed;</p>
+        <div class="hardware-grid">
+          <div class="hw-item glass-card"><span class="hw-dot"></span> Arduino Pro Mini 3.3V</div>
+          <div class="hw-item glass-card"><span class="hw-dot"></span> LTR390 UV Sensor</div>
+          <div class="hw-item glass-card"><span class="hw-dot"></span> DFRobot SEN0321 O&#8323;</div>
+          <div class="hw-item glass-card"><span class="hw-dot"></span> MS5611 Pressure</div>
+          <div class="hw-item glass-card"><span class="hw-dot"></span> MAX31856 Thermocouple</div>
+          <div class="hw-item glass-card"><span class="hw-dot"></span> AT24C256 EEPROM</div>
+          <div class="hw-item glass-card"><span class="hw-dot"></span> DS3231 RTC Clock</div>
+          <div class="hw-item glass-card"><span class="hw-dot"></span> 3D-printed housing</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Team -->
+  <div class="section-divider"></div>
+  <section id="team">
+    <div class="reveal">
+      <span class="section-label" data-lang-en>The Team</span>
+      <span class="section-label" data-lang-cs>T&#xFD;m</span>
+      <h2 data-lang-en>Team Vltava</h2>
+      <h2 data-lang-cs>T&#xFD;m Vltava</h2>
+      <p data-lang-en>Students from The English College in Prague, working together since November 2025.</p>
+      <p data-lang-cs>Studenti z&nbsp;The English College in Prague, kte&#x159;&#xED; spolupracuj&#xED; od listopadu 2025.</p>
+    </div>
+
+    <div class="team-grid reveal">
+      <div class="team-card glass-card">
+        <div class="avatar">AR</div>
+        <h3>Ann&#xe1;&#x161; Rychtera</h3>
+        <div class="role" data-lang-en>Electronics &amp; Research</div>
+        <div class="role" data-lang-cs>Elektronika a v&#xFD;zkum</div>
+      </div>
+      <div class="team-card glass-card">
+        <div class="avatar">&#x160;D</div>
+        <h3>&#x160;imon Donovan</h3>
+        <div class="role" data-lang-en>Software &amp; Programming</div>
+        <div class="role" data-lang-cs>Software a programov&#xe1;n&#xED;</div>
+      </div>
+      <div class="team-card glass-card">
+        <div class="avatar">TD</div>
+        <h3>Theodor Dobe&#x161;</h3>
+        <div class="role" data-lang-en>Project Coordination</div>
+        <div class="role" data-lang-cs>Koordinace projektu</div>
+      </div>
+      <div class="team-card glass-card">
+        <div class="avatar">MD</div>
+        <h3>Max Dobe&#x161;</h3>
+        <div class="role" data-lang-en>3D Design &amp; Mechanical</div>
+        <div class="role" data-lang-cs>3D design a mechanika</div>
+      </div>
+      <div class="team-card team-card--featured glass-card">
+        <div class="avatar">JD</div>
+        <h3>Ji&#x159;&#xED; Dobe&#x161;</h3>
+        <div class="role" data-lang-en>Mentor &amp; Advisor</div>
+        <div class="role" data-lang-cs>Mentor a poradce</div>
+        <div class="affiliation">
+          <span data-lang-en>Founder, X-Horizon</span>
+          <span data-lang-cs>Zakladatel, X-Horizon</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Timeline -->
+  <div class="section-divider"></div>
+  <section id="timeline">
+    <div class="reveal">
+      <span class="section-label" data-lang-en>Timeline</span>
+      <span class="section-label" data-lang-cs>Harmonogram</span>
+      <h2 data-lang-en>Journey to Launch</h2>
+      <h2 data-lang-cs>Cesta ke startu</h2>
+    </div>
+
+    <div class="timeline reveal">
+      <div class="timeline-item">
+        <div class="timeline-date">November 2025</div>
+        <h3 data-lang-en>Project Inception</h3>
+        <h3 data-lang-cs>Vznik projektu</h3>
+        <p data-lang-en>Team formed, proposal for the ASGARD-XV balloon program submitted. Original concept: detect cosmic-ray induced Single Event Upsets in memory chips at altitude.</p>
+        <p data-lang-cs>T&#xFD;m sestaven, n&#xe1;vrh projektu pro bal&#xF3;nov&#xFD; program ASGARD-XV odesl&#xe1;n. P&#x16F;vodn&#xED; koncept: detekce jednor&#xe1;zov&#xFD;ch poruch (SEU) v&nbsp;pam&#x11B;&#x165;ov&#xFD;ch &#x10D;ipech zp&#x16F;soben&#xFD;ch kosmick&#xFD;m z&#xe1;&#x159;en&#xED;m ve stratosféře.</p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-date">December 2025</div>
+        <h3 data-lang-en>Accepted!</h3>
+        <h3 data-lang-cs>P&#x159;ijato!</h3>
+        <p data-lang-en>The jury of the ASGARD program, chaired by Dirk Frimout (Belgium's first astronaut), selected the proposal. Assigned designation: Asgard-XV Experiment 14.</p>
+        <p data-lang-cs>Porota programu ASGARD pod veden&#xED;m Dirka Frimouta (prvn&#xED;ho belgick&#xe9;ho astronauta) vybrala n&#xe1;&#x161; n&#xe1;vrh. P&#x159;id&#x11B;len&#xe9; ozna&#x10D;en&#xED;: Asgard-XV Experiment&nbsp;14.</p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-date">January 2026</div>
+        <h3 data-lang-en>Research Pivot</h3>
+        <h3 data-lang-cs>Zm&#x11B;na v&#xFD;zkumn&#xe9;ho zam&#x11B;&#x159;en&#xED;</h3>
+        <p data-lang-en>Calculations revealed that detecting SEUs during the flight was statistically impractical. The team pivoted to measuring the vertical ozone-UV profile. First progress report submitted.</p>
+        <p data-lang-cs>V&#xFD;po&#x10D;ty uk&#xe1;zaly, &#x17E;e detekce SEU b&#x11B;hem letu je statisticky velmi malá. T&#xFD;m se proto p&#x159;eorientoval na m&#x11B;&#x159;en&#xED; vertik&#xe1;ln&#xED;ho profilu oz&#xF3;nu a UV z&#xe1;&#x159;en&#xED;. Prvn&#xED; zpr&#xe1;va o&nbsp;postupu odesl&#xe1;na.</p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-date">February 2026</div>
+        <h3 data-lang-en>Building Phase</h3>
+        <h3 data-lang-cs>F&#xe1;ze stavby</h3>
+        <p data-lang-en>All electronic components purchased and delivered. Circuit layout designed. First hands-on prototype session. Arduino programming begins.</p>
+        <p data-lang-cs>V&#x161;echny elektronick&#xe9; sou&#x10D;&#xe1;stky nakoupeny a doru&#x10D;eny. Navr&#x17E;eno sch&#xe9;ma obvodu. Prob&#x11B;hla prvn&#xED; praktick&#xe1; stavebn&#xED; sch&#x16F;zka. Za&#x10D;alo programov&#xe1;n&#xED; Arduina.</p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-date">March 2026</div>
+        <h3 data-lang-en>Integration &amp; Testing</h3>
+        <h3 data-lang-cs>Integrace a testov&#xe1;n&#xED;</h3>
+        <p data-lang-en>UV sensor software developed and tested. 3D-printed housing design. Multiple build sessions to integrate sensors, code, and mechanical assembly. Flights to Brussels booked.</p>
+        <p data-lang-cs>Software UV senzoru vyvinut a otestov&#xe1;n. Prob&#x11B;hlo n&#x11B;kolik stavebn&#xED;ch setk&#xe1;n&#xED; za &#xFA;&#x10D;elem integrace senzor&#x16F;, k&#xF3;du a mechanick&#xe9; sestavy. Letenky do Bruselu zakoupeny.</p>
+      </div>
+
+      <div class="timeline-item active">
+        <div class="timeline-date">April 2026</div>
+        <h3 data-lang-en>Launch Campaign</h3>
+        <h3 data-lang-cs>Vypuštění balónu</h3>
+        <p data-lang-en>Hardware delivered to Belgium by the middle of April. Launch campaign April 22&#x2013;24 in Brussels. Balloon flight on April 23 from the Royal Meteorological Institute, Ukkel.</p>
+        <p data-lang-cs>Hardware dod&#xe1;n do Belgie do poloviny dubna. Startovac&#xED; kampa&#x148; 22.&ndash;24.&nbsp;dubna v&nbsp;Bruselu. Let bal&#xF3;nu 23.&nbsp;dubna z&nbsp;Kr&#xe1;lovsk&#xe9;ho meteorologick&#xe9;ho &#xFA;stavu v&nbsp;Ukkelu.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery -->
+  <div class="section-divider"></div>
+  <section id="gallery">
+    <div class="reveal">
+      <span class="section-label" data-lang-en>Gallery</span>
+      <span class="section-label" data-lang-cs>Galerie</span>
+      <h2 data-lang-en>The Project in Photos</h2>
+      <h2 data-lang-cs>Projekt ve fotografi&#xED;ch</h2>
+    </div>
+
+    <div class="gallery-grid reveal">
+      <!-- 1. Project announcement — Nov 2025 -->
+      <div class="gallery-item">
+        <img src="images/IMG-20251111-WA0001.jpg" alt="Project proposal announced" loading="lazy">
+        <div class="caption" data-lang-en>Project proposal announced &mdash; November 2025</div>
+        <div class="caption" data-lang-cs>Ozn&#xe1;men&#xed; projektov&#xe9;ho n&#xe1;vrhu &mdash; listopad 2025</div>
+      </div>
+      <!-- 2. Solar spectrum analysis — Jan 2026 -->
+      <div class="gallery-item">
+        <img src="images/IMG-20260117-WA0002.jpg" alt="Solar spectrum analysis" loading="lazy">
+        <div class="caption" data-lang-en>Solar spectrum analysis at ground level vs 20&nbsp;km</div>
+        <div class="caption" data-lang-cs>Anal&#xfd;za slune&#x10d;n&#xed;ho spektra na zemi vs ve 20&nbsp;km</div>
+      </div>
+      <!-- 3. Ozone concentration profile — Jan 2026 -->
+      <div class="gallery-item">
+        <img src="images/IMG-20260117-WA0012.jpg" alt="Ozone concentration profile" loading="lazy">
+        <div class="caption" data-lang-en>Ozone concentration peaking at 25&nbsp;km</div>
+        <div class="caption" data-lang-cs>Koncentrace oz&#xf3;nu s&nbsp;maximem ve 25&nbsp;km</div>
+      </div>
+      <!-- 4. System architecture brainstorm — Feb 2026 -->
+      <div class="gallery-item">
+        <img src="images/IMG-20260204-WA0016.jpg" alt="System architecture sketch" loading="lazy">
+        <div class="caption" data-lang-en>System architecture brainstorm</div>
+        <div class="caption" data-lang-cs>N&#xe1;vrh architektury syst&#xe9;mu</div>
+      </div>
+      <!-- 5. Team building the payload — Feb 2026 -->
+      <div class="gallery-item">
+        <img src="images/PXL_20260212_171703038.jpg" alt="Team building the payload" loading="lazy">
+        <div class="caption" data-lang-en>Team building the payload &mdash; February 2026</div>
+        <div class="caption" data-lang-cs>T&#xfd;m p&#x159;i stavb&#x11b; za&#x159;&#xed;zen&#xed; &mdash; &#xfa;nor 2026</div>
+      </div>
+      <!-- 6. Build session in full swing — Feb 2026 -->
+      <div class="gallery-item">
+        <img src="images/PXL_20260212_171729305.jpg" alt="Build session in full swing" loading="lazy">
+        <div class="caption" data-lang-en>Build session in full swing</div>
+        <div class="caption" data-lang-cs>Stavba v pln&#xe9;m proudu</div>
+      </div>
+      <!-- 7. Soldering the sensor board — Feb 2026 -->
+      <div class="gallery-item">
+        <img src="images/PXL_20260212_185324351.PORTRAIT.jpg" alt="Soldering the sensor board" loading="lazy">
+        <div class="caption" data-lang-en>Soldering the sensor board</div>
+        <div class="caption" data-lang-cs>P&#xe1;jen&#xed; senzorov&#xe9; desky</div>
+      </div>
+      <!-- 8. Pizza break — Mar 2026 -->
+      <div class="gallery-item">
+        <img src="images/IMG-20260312-WA0002.jpg" alt="Team pizza break" loading="lazy">
+        <div class="caption" data-lang-en>Well-deserved pizza break after a build session</div>
+        <div class="caption" data-lang-cs>Zaslou&#x17e;en&#xe1; pizza po stavebn&#xed;m setk&#xe1;n&#xed;</div>
+      </div>
+      <!-- 9. Sensor test run video — Mar 2026 -->
+      <div class="gallery-item">
+        <video src="images/PXL_20260322_085640108.mp4" autoplay muted loop playsinline></video>
+        <div class="caption" data-lang-en>Sensor test run</div>
+        <div class="caption" data-lang-cs>Testovac&#xed; b&#x11b;h senzor&#x16f;</div>
+      </div>
+      <!-- 10. Payload assembly — Mar 2026 -->
+      <div class="gallery-item">
+        <img src="images/PXL_20260328_160158213.jpg" alt="Payload assembly work session" loading="lazy">
+        <div class="caption" data-lang-en>Payload assembly work session &mdash; March 2026</div>
+        <div class="caption" data-lang-cs>Mont&#xe1;&#x17e; za&#x159;&#xed;zen&#xed; &mdash; b&#x159;ezen 2026</div>
+      </div>
+      <!-- 11. Reviewing payload with mentor — Mar 2026 -->
+      <div class="gallery-item">
+        <img src="images/PXL_20260328_170125324.jpg" alt="Reviewing the payload with mentor" loading="lazy">
+        <div class="caption" data-lang-en>Reviewing the payload with mentor</div>
+        <div class="caption" data-lang-cs>Kontrola za&#x159;&#xed;zen&#xed; s mentorem</div>
+      </div>
+      <!-- 12. Completed sensor payload — Apr 2026 -->
+      <div class="gallery-item">
+        <img src="images/PXL_20260407_172235362.jpg" alt="Completed sensor payload" loading="lazy">
+        <div class="caption" data-lang-en>Completed sensor payload</div>
+        <div class="caption" data-lang-cs>Dokon&#x10d;en&#xe9; senzorov&#xe9; za&#x159;&#xed;zen&#xed;</div>
+      </div>
+      <!-- 13. Final weigh-in — Apr 2026 -->
+      <div class="gallery-item">
+        <img src="images/PXL_20260409_114504901.jpg" alt="Final payload weigh-in" loading="lazy">
+        <div class="caption" data-lang-en>Final payload weigh-in &mdash; 165&nbsp;g</div>
+        <div class="caption" data-lang-cs>Z&#xe1;v&#x11b;re&#x10d;n&#xe9; v&#xe1;&#x17e;en&#xed; &mdash; 165&nbsp;g</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Partners -->
+  <div class="section-divider"></div>
+  <section id="partners">
+    <div class="reveal">
+      <span class="section-label" data-lang-en>Partners</span>
+      <span class="section-label" data-lang-cs>Partne&#x159;i</span>
+      <h2 data-lang-en>Supporting Organizations</h2>
+      <h2 data-lang-cs>Podporuj&#xED;c&#xED; organizace</h2>
+    </div>
+
+    <div class="partners-grid reveal">
+      <div class="partner-card partner-card--featured glass-card">
+        <div class="partner-name">X-Horizon</div>
+        <p data-lang-en>Czech technology company; project sponsor and home base for building &amp; testing the payload.</p>
+        <p data-lang-cs>&#x10C;esk&#xe1; technologick&#xe1; spole&#x10D;nost; sponzor projektu a z&#xe1;zem&#xED; pro stavbu a testov&#xe1;n&#xED; za&#x159;&#xED;zen&#xED;.</p>
+      </div>
+
+      <div class="partner-card glass-card">
+        <div class="partner-name">ASGARD@SpacePole</div>
+        <p data-lang-en>Sint-Pieterscollege Jette, Brussels</p>
+        <p data-lang-cs>Sint-Pieterscollege Jette, Brusel</p>
+      </div>
+      <div class="partner-card glass-card">
+        <div class="partner-name">The English College in Prague</div>
+        <p data-lang-en>Our school</p>
+        <p data-lang-cs>Na&#x161;e &#x161;kola</p>
+      </div>
+      <div class="partner-card glass-card">
+        <div class="partner-name">RMI</div>
+        <p data-lang-en>Royal Meteorological Institute</p>
+        <p data-lang-cs>Kr&#xe1;lovsk&#xFD; meteorologick&#xFD; &#xFA;stav</p>
+      </div>
+      <div class="partner-card glass-card">
+        <div class="partner-name">ROB</div>
+        <p data-lang-en>Royal Observatory of Belgium</p>
+        <p data-lang-cs>Kr&#xe1;lovsk&#xe1; hv&#x11B;zd&#xe1;rna Belgie</p>
+      </div>
+      <div class="partner-card glass-card">
+        <div class="partner-name">STCE</div>
+        <p data-lang-en>Solar-Terrestrial Centre of Excellence</p>
+        <p data-lang-cs>Centrum excelence pro v&#xFD;zkum Slunce a Zem&#x11B;</p>
+      </div>
+      <div class="partner-card glass-card">
+        <div class="partner-name">ESERO Belgium</div>
+        <p data-lang-en>European Space Education Resource Office</p>
+        <p data-lang-cs>Evropsk&#xe1; kancel&#xe1;&#x159; kosmick&#xFD;ch vzd&#x11B;l&#xe1;vac&#xED;ch zdroj&#x16F;</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <div class="section-divider"></div>
+  <footer class="footer">
+    <div data-lang-en>
+      <strong>Project Vltava</strong> &mdash; A student project by The English College in Prague
+      <div class="footer-line">ASGARD-XV Experiment 14 &middot; Launch: April 23, 2026 &middot; Brussels, Belgium</div>
+      <div class="footer-line" style="margin-top:0.5rem;">Built &amp; tested at <strong>X-Horizon</strong></div>
+    </div>
+    <div data-lang-cs>
+      <strong>Projekt Vltava</strong> &mdash; Studentsk&#xFD; projekt The English College in Prague
+      <div class="footer-line">ASGARD-XV Experiment 14 &middot; Start: 23. dubna 2026 &middot; Brusel, Belgie</div>
+      <div class="footer-line" style="margin-top:0.5rem;">Postaveno a testov&#xe1;no v&nbsp;<strong>X-Horizon</strong></div>
+    </div>
+    <a href="https://github.com/jdobes-cz/stratospheric-ozone-uv-profile" target="_blank" rel="noopener noreferrer" class="footer-github">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span data-lang-en>View source on GitHub</span>
+      <span data-lang-cs>Zdrojov&#xFD; k&#xF3;d na GitHubu</span>
+    </a>
+  </footer>
+
+  <!-- Lightbox modal -->
+  <div class="lightbox" id="lightbox">
+    <button class="lightbox-close" id="lightbox-close">&times;</button>
+    <button class="lightbox-prev" id="lightbox-prev">&#10094;</button>
+    <button class="lightbox-next" id="lightbox-next">&#10095;</button>
+    <img class="lightbox-img" id="lightbox-img" src="" alt="">
+    <video class="lightbox-img" id="lightbox-video" src="" controls style="display:none"></video>
+    <div class="lightbox-caption" id="lightbox-caption"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
