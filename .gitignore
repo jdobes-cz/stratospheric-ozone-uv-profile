@@ -60,6 +60,13 @@ Desktop.ini
 *.nc
 
 # -------------------------
+# Large media (GitHub rejects files > 100 MB)
+# -------------------------
+*.mp4
+*.mov
+*.mkv
+
+# -------------------------
 # libRadtran (do not commit vendored binaries/data; keep empty folder only)
 # -------------------------
 libRantran/*
