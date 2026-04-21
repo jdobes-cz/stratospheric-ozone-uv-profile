@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>ASGARD-XV Experiment 14 — Predicted Atmospheric and Radiative Profile</title>
+<style>
+@page {
+  size: A4;
+  margin: 22mm 20mm 22mm 20mm;
+  @bottom-center {
+    content: "ASGARD-XV Exp 14 — J. Dobes — Page " counter(page) " / " counter(pages);
+    font: 9pt "Georgia", serif;
+    color: #555;
+  }
+}
+html { font-family: "Georgia", "Times New Roman", serif; font-size: 10.5pt; }
+body { color: #111; line-height: 1.42; }
+
+/* Title block */
+.title-block { text-align: center; margin-bottom: 18pt; }
+.series { font-family: "Helvetica", "Arial", sans-serif; font-size: 9pt; letter-spacing: 2pt;
+           text-transform: uppercase; color: #666; margin-bottom: 6pt; }
+h1.title { font-size: 18pt; font-weight: bold; margin: 4pt 0 6pt 0; line-height: 1.2; }
+.subtitle { font-size: 12pt; font-style: italic; color: #333; margin-bottom: 10pt; }
+.author { font-size: 11pt; margin-top: 6pt; }
+.affiliation { font-size: 10pt; color: #444; }
+.date { font-size: 10pt; color: #666; margin-top: 2pt; }
+
+h2 { font-size: 12.5pt; margin-top: 14pt; margin-bottom: 4pt;
+       border-bottom: 0.6pt solid #888; padding-bottom: 2pt; }
+h3 { font-size: 11pt; margin-top: 10pt; margin-bottom: 2pt; font-style: italic; }
+p  { margin: 4pt 0; text-align: justify; }
+
+.abstract { font-size: 10pt; background: #f5f5f2; padding: 8pt 12pt;
+              border-left: 2pt solid #444; margin: 10pt 0 14pt 0; }
+.abstract h2 { border: none; font-size: 10.5pt; margin: 0 0 4pt 0; padding: 0;
+                text-transform: uppercase; letter-spacing: 1pt; color: #444; }
+
+table { border-collapse: collapse; margin: 6pt auto; font-size: 9.5pt; }
+table.data { width: 100%; }
+table.data th, table.data td { border: 0.4pt solid #bbb; padding: 3pt 6pt; text-align: right; }
+table.data th { background: #eee; font-weight: bold; }
+table.data td:first-child, table.data th:first-child { text-align: center; }
+
+.caption { font-size: 9pt; color: #333; text-align: center; margin: 4pt 0 10pt 0; }
+.caption b { color: #000; }
+
+figure { page-break-inside: avoid; margin: 8pt 0; text-align: center; }
+figure img { width: 100%; max-width: 165mm; height: auto; }
+
+.monospace { font-family: "Courier New", monospace; font-size: 9.5pt; }
+code { font-family: "Courier New", monospace; font-size: 9.5pt; background: #f0f0ee;
+        padding: 0 2pt; border-radius: 2pt; }
+pre  { font-family: "Courier New", monospace; font-size: 9pt; background: #f5f5f2;
+        padding: 6pt 8pt; border-left: 2pt solid #888; margin: 6pt 0;
+        white-space: pre-wrap; word-wrap: break-word; }
+
+.eqn { display: block; text-align: center; font-style: italic; margin: 4pt 0; }
+.var { font-style: italic; }
+
+ol.refs { padding-left: 18pt; font-size: 9.5pt; }
+ol.refs li { margin-bottom: 3pt; }
+</style>
+</head>
+<body>
+
+<div class="title-block">
+  <div class="series">ASGARD-XV · Experiment 14 · Pre-Flight Prediction</div>
+  <h1 class="title">Predicted Atmospheric and Upwelling Radiation Profile for a Stratospheric Balloon Ascent from Brussels, 2026-04-23</h1>
+  <div class="author">Jiri Dobes</div>
+  <div class="affiliation">The English College in Prague / X-Horizon</div>
+  <div class="date">21 April 2026</div>
+</div>
+
+<div class="abstract">
+<h2>Abstract</h2>
+<p>A pre-flight prediction of atmospheric temperature, ozone concentration, and upwelling broadband radiation is presented for ASGARD-XV Experiment 14, a student stratospheric balloon payload carrying a Lite-On LTR390 UV/ambient-light sensor, a DFRobot SEN0321 ozone sensor, a TE MS5611 pressure/temperature sensor, and a Maxim DS3231 precision real-time clock, launching from Brussels, Belgium (50.80°N, 4.36°E) at 14:00 CEST on 23 April 2026. The ozone profile was derived from the Copernicus Atmosphere Monitoring Service (CAMS) global composition forecast (init 2026-04-20 12:00 UTC, lead +72 h), bilinearly interpolated to the launch point. Radiative transfer was computed with libRadtran 2.0.6 using the DISORT 8-stream pseudospherical solver on a 1 nm spectral grid from 250 to 1100 nm, in 1 km altitude steps from 0 to 40 km. Headline results: total ozone column <b>369.950 DU</b>, peak mixing ratio <b>7.61 ppmv</b> at <b>31.1 km</b>, solar zenith angle <b>38.37°</b>, band-integrated upwelling irradiance at 40 km of <b>15.6 W m⁻²</b> in the 280–400 nm band and <b>33 W m⁻²</b> in the 400–700 nm band.</p>
+</div>
+
+<h2>1. Introduction</h2>
+<p>ASGARD-XV Experiment 14 is a compact autonomous data logger designed, built, and tested at The English College in Prague. It carries four sensors sampled at 1 Hz during a stratospheric balloon ascent, with records stored to a 256 kbit AT24C256 EEPROM (primary storage) and a microSD card (backup) driven by an Arduino Pro Mini running at 3.3&nbsp;V / 8&nbsp;MHz. The flight profile reaches a nominal float altitude of approximately 30&nbsp;km.</p>
+
+<p>The purpose of this note is to produce a physically grounded pre-flight prediction of the vertical structure of temperature, ozone, and ground-facing upwelling ultraviolet and visible irradiance that the payload will encounter. These reference profiles serve three functions:</p>
+<ul>
+<li>they bound the dynamic range the LTR390 UV and ALS (ambient-light) channels will see, allowing gain settings to be chosen pre-flight;</li>
+<li>they provide a forecast ozone column and stratospheric peak against which the SEN0321 ozone sensor data can be qualitatively compared;</li>
+<li>they supply a reference temperature profile (ISA 1976) against which MS5611 in-situ readings can be evaluated.</li>
+</ul>
+
+<h2>2. Methodology</h2>
+
+<h3>2.1 Input ozone from CAMS</h3>
+<p>Ozone mass mixing ratio <span class="var">q(p)</span> was obtained from the CAMS global atmospheric composition forecast (<code>cams-global-atmospheric-composition-forecasts</code>). The request configuration is given below:</p>
+<pre>init date   : 2026-04-20
+init time   : 12:00 UTC
+lead time   : +72 h          → valid 2026-04-23 12:00 UTC (14:00 CEST)
+area        : 50.8±0.5 N, 4.36±0.5 E
+levels (22) : 1000, 925, 850, 700, 600, 500, 400, 300, 250, 200,
+              150, 100, 70, 50, 30, 20, 10, 7, 5, 3, 2, 1 hPa
+type        : forecast
+format      : netcdf</pre>
+<p>The raw NetCDF field has dimensions (<span class="var">forecast_reference_time, forecast_period, pressure_level, latitude, longitude</span>). A bilinear interpolation in (latitude, longitude) to the exact launch point was performed using <code>xarray</code>'s <code>interp</code> method. Because pressure-level forecasts are produced on a 3 h time grid, the closest grid point to the 13:00 CEST launch target is 14:00 CEST, a 1 h forward offset considered negligible for stratospheric ozone.</p>
+
+<h3>2.2 ISA 1976 pressure–altitude mapping</h3>
+<p>For the reference temperature profile and for altitude labelling, the U.S. Standard Atmosphere 1976 was adopted, with piecewise linear temperature lapse rates:</p>
+<table class="data" style="width: 90%;">
+<thead><tr><th>Layer</th><th>Base altitude [km]</th><th>Lapse rate <span class="var">L</span> [K km⁻¹]</th></tr></thead>
+<tbody>
+<tr><td>Troposphere</td><td>0 – 11</td><td>−6.50</td></tr>
+<tr><td>Lower stratosphere (isothermal)</td><td>11 – 20</td><td>0.00</td></tr>
+<tr><td>Middle stratosphere</td><td>20 – 32</td><td>+1.00</td></tr>
+<tr><td>Upper stratosphere</td><td>32 – 47</td><td>+2.80</td></tr>
+</tbody>
+</table>
+<p>Pressure as a function of altitude <span class="var">z</span> follows from the hydrostatic balance layer by layer. For a non-isothermal layer with base (<span class="var">z<sub>b</sub>, T<sub>b</sub>, p<sub>b</sub></span>):</p>
+<p class="eqn">p(z) = p<sub>b</sub> [T<sub>b</sub> / (T<sub>b</sub> + L (z − z<sub>b</sub>))]<sup> g / (R L)</sup></p>
+<p>and for an isothermal layer:</p>
+<p class="eqn">p(z) = p<sub>b</sub> exp[−g (z − z<sub>b</sub>) / (R T<sub>b</sub>)]</p>
+<p>with <span class="var">g</span> = 9.80665 m s⁻² and <span class="var">R</span> = 287.053 J kg⁻¹ K⁻¹ (specific gas constant for dry air). The inverse <span class="var">p → z</span> is derived analytically within each layer and is used to place the CAMS pressure levels on a geometric altitude axis.</p>
+
+<h3>2.3 Total ozone column</h3>
+<p>The ozone column density in Dobson Units (DU) is computed as</p>
+<p class="eqn">N<sub>O₃</sub> = ∫ q(z) · (M<sub>air</sub> / M<sub>O₃</sub>) · n<sub>air</sub>(z) d<span class="var">z</span></p>
+<p>where <span class="var">n<sub>air</sub>(z) = p(z) / (k<sub>B</sub> T(z))</span>, with <span class="var">T(z)</span> taken from ISA 1976, <span class="var">M<sub>air</sub></span> = 28.9647 g mol⁻¹, <span class="var">M<sub>O₃</sub></span> = 47.9982 g mol⁻¹, <span class="var">k<sub>B</sub></span> = 1.380649 × 10⁻²³ J K⁻¹, and 1 DU ≡ 2.687 × 10²⁰ molec m⁻². The integral is evaluated by the composite trapezoidal rule over the CAMS pressure levels, with a rectangular pad added from the lowest level down to the surface to avoid truncating the boundary layer.</p>
+
+<h3>2.4 Radiative transfer</h3>
+<p>Spectral irradiance was computed with libRadtran 2.0.6 [1]. The <code>uvspec</code> input template is:</p>
+<pre>latitude N 50.798056
+longitude E 4.357500
+time 2026 04 23 12 00 00            # UTC = 14:00 CEST
+atmosphere_file midlatitude_summer
+mol_file O3 o3_mmr.dat mmr          # CAMS overlay
+rte_solver disort
+number_of_streams 8
+pseudospherical
+mol_abs_param crs
+source solar kurudz_0.1nm.dat       # Kurucz 0.1 nm [2], mW m⁻² nm⁻¹
+wavelength 250 1100
+spline 250 1100 1                   # 1 nm output grid
+albedo 0.05                         # land / vegetation baseline
+zout_sea &lt;SUBSTITUTED&gt;
+output_user lambda sza zout eup edir edn eglo
+quiet</pre>
+<p>A bash driver iterates <span class="var">z<sub>out</sub></span> from 0 to 40 km in 1 km steps (41 runs). For each run the solver writes a 4-column spectral file: upwelling irradiance <span class="var">E<sub>up</sub></span>, direct downwelling <span class="var">E<sub>dir</sub></span>, diffuse downwelling <span class="var">E<sub>dn</sub></span>, and global downwelling <span class="var">E<sub>glo</sub> = E<sub>dir</sub> + E<sub>dn</sub></span>. Pseudospherical mode corrects the plane-parallel direct-beam geometry for Earth curvature, which is important at high SZA but has a small (&lt;1%) effect at our launch geometry. The DISORT 8-stream solver resolves the multiple-scattering contribution sufficiently for integrated radiometric quantities.</p>
+
+<h3>2.5 Band integration</h3>
+<p>At each altitude, the upwelling irradiance <span class="var">E<sub>up</sub></span>(λ, z) in mW m⁻² nm⁻¹ is numerically integrated over spectral bands:</p>
+<p class="eqn">E<sub>band</sub>(z) = 10⁻³ · ∫<sub>λ₁</sub><sup>λ₂</sup> E<sub>up</sub>(λ, z) d<span class="var">λ</span>   [W m⁻²]</p>
+<p>where the 10⁻³ factor converts mW to W. Band definitions used throughout:</p>
+<table class="data" style="width: 75%;">
+<thead><tr><th>Band</th><th>Range [nm]</th></tr></thead>
+<tbody>
+<tr><td>UV-C</td><td>250 – 280</td></tr>
+<tr><td>UV-B</td><td>280 – 315</td></tr>
+<tr><td>UV-A</td><td>315 – 400</td></tr>
+<tr><td>UV (total)</td><td>280 – 400</td></tr>
+<tr><td>Visible</td><td>400 – 700</td></tr>
+<tr><td>Near-infrared (NIR)</td><td>700 – 1100</td></tr>
+</tbody>
+</table>
+
+<h2>3. Results</h2>
+
+<h3>3.1 Ozone profile and column</h3>
+<p>The interpolated CAMS ozone volume mixing ratio rises from order ~50 ppbv in the lower troposphere to a stratospheric peak of <b>7.61 ppmv</b> at approximately <b>31.1 km</b> (<b>10 hPa</b>), decreasing above. The vertically integrated column is <b>369.950 DU</b>, typical of mid-latitude spring. Table 1 gives the interpolated profile at all 22 CAMS pressure levels.</p>
+
+<table class="data">
+<caption class="caption"><b>Table 1.</b> CAMS ozone forecast interpolated to (50.80°N, 4.36°E), valid 2026-04-23 12:00 UTC. Altitude column is ISA 1976 pressure → height.</caption>
+<thead><tr><th>Pressure [hPa]</th><th>Altitude [km]</th><th>O₃ mmr [kg kg⁻¹]</th><th>O₃ [ppmv]</th></tr></thead>
+<tbody>
+<tr><td>1000.0</td><td>0.11</td><td>8.082e-08</td><td>0.049</td></tr>
+<tr><td>925.0</td><td>0.76</td><td>9.815e-08</td><td>0.059</td></tr>
+<tr><td>850.0</td><td>1.46</td><td>1.068e-07</td><td>0.064</td></tr>
+<tr><td>700.0</td><td>3.01</td><td>1.072e-07</td><td>0.065</td></tr>
+<tr><td>600.0</td><td>4.21</td><td>1.156e-07</td><td>0.070</td></tr>
+<tr><td>500.0</td><td>5.57</td><td>1.180e-07</td><td>0.071</td></tr>
+<tr><td>400.0</td><td>7.19</td><td>9.776e-08</td><td>0.059</td></tr>
+<tr><td>300.0</td><td>9.16</td><td>1.211e-07</td><td>0.073</td></tr>
+<tr><td>250.0</td><td>10.36</td><td>1.525e-07</td><td>0.092</td></tr>
+<tr><td>200.0</td><td>11.78</td><td>3.135e-07</td><td>0.189</td></tr>
+<tr><td>150.0</td><td>13.61</td><td>1.218e-06</td><td>0.735</td></tr>
+<tr><td>100.0</td><td>16.18</td><td>1.760e-06</td><td>1.062</td></tr>
+<tr><td>70.0</td><td>18.44</td><td>3.475e-06</td><td>2.095</td></tr>
+<tr><td>50.0</td><td>20.58</td><td>5.601e-06</td><td>3.377</td></tr>
+<tr><td>30.0</td><td>23.85</td><td>7.331e-06</td><td>4.421</td></tr>
+<tr><td>20.0</td><td>26.48</td><td>8.899e-06</td><td>5.366</td></tr>
+<tr><td>10.0</td><td>31.05</td><td>1.262e-05</td><td>7.610</td></tr>
+<tr><td>7.0</td><td>33.45</td><td>1.220e-05</td><td>7.359</td></tr>
+<tr><td>5.0</td><td>35.78</td><td>1.118e-05</td><td>6.744</td></tr>
+<tr><td>3.0</td><td>39.43</td><td>9.132e-06</td><td>5.506</td></tr>
+<tr><td>2.0</td><td>42.44</td><td>7.137e-06</td><td>4.304</td></tr>
+<tr><td>1.0</td><td>47.82</td><td>4.133e-06</td><td>2.492</td></tr>
+</tbody>
+</table>
+
+<h3>3.2 Upwelling radiation profile</h3>
+<p>The solar zenith angle at the launch coordinates and time is <b>38.37°</b> (elevation 51.6°). Band-integrated upwelling irradiance at nine representative altitudes is listed in Table 2.</p>
+
+<table class="data">
+<caption class="caption"><b>Table 2.</b> Band-integrated upwelling irradiance <span class="var">E<sub>up</sub></span> (W m⁻²) at representative altitudes. Pressure from ISA 1976.</caption>
+<thead><tr>
+<th>z [km]</th><th>p [hPa]</th>
+<th>UV-A<br/>315–400</th>
+<th>UV-B<br/>280–315</th>
+<th>UV<br/>280–400</th>
+<th>Visible<br/>400–700</th>
+<th>NIR<br/>700–1100</th>
+</tr></thead>
+<tbody>
+<tr><td>0</td><td>1013.25</td><td>2.07</td><td>0.000</td><td>2.07</td><td>14.24</td><td>13.96</td></tr>
+<tr><td>5</td><td>540.20</td><td>8.57</td><td>0.000</td><td>8.57</td><td>23.73</td><td>15.06</td></tr>
+<tr><td>10</td><td>264.36</td><td>12.08</td><td>0.003</td><td>12.08</td><td>28.21</td><td>15.61</td></tr>
+<tr><td>15</td><td>120.45</td><td>13.99</td><td>0.023</td><td>14.01</td><td>30.75</td><td>15.92</td></tr>
+<tr><td>20</td><td>54.75</td><td>14.86</td><td>0.061</td><td>14.92</td><td>32.00</td><td>16.07</td></tr>
+<tr><td>25</td><td>25.11</td><td>15.22</td><td>0.099</td><td>15.32</td><td>32.57</td><td>16.14</td></tr>
+<tr><td>30</td><td>11.72</td><td>15.37</td><td>0.128</td><td>15.50</td><td>32.81</td><td>16.18</td></tr>
+<tr><td>35</td><td>5.59</td><td>15.43</td><td>0.146</td><td>15.58</td><td>32.92</td><td>16.19</td></tr>
+<tr><td>40</td><td>2.78</td><td>15.46</td><td>0.157</td><td>15.62</td><td>32.98</td><td>16.20</td></tr>
+</tbody>
+</table>
+
+<figure>
+<img src="file:///mnt/c/Users/jdobe/Downloads/Stratospheric_baloon/stratospheric-ozone-uv-profile/profile.png" alt="Four-panel profile"/>
+<div class="caption"><b>Figure 1.</b> Predicted atmospheric and upwelling radiation profile for the ASGARD-XV Experiment 14 flight. Top-left: ISA 1976 temperature (°C). Top-right: CAMS ozone volume mixing ratio (ppmv). Bottom-left: band-integrated upwelling UV irradiance 280–400 nm (W m⁻²). Bottom-right: band-integrated upwelling visible irradiance 400–700 nm (W m⁻²). Shared pressure axis (log, surface on left, TOA on right). Top row shows a secondary altitude axis.</div>
+</figure>
+
+<figure>
+<img src="file:///mnt/c/Users/jdobe/Downloads/Stratospheric_baloon/stratospheric-ozone-uv-profile/paper/uv_bands.png" alt="UV sub-band upwelling irradiance"/>
+<div class="caption"><b>Figure 2.</b> Upwelling UV irradiance decomposed into UV-A (315–400 nm), UV-B (280–315 nm), and UV-C (250–280 nm) components, log scale. UV-A dominates at all altitudes; UV-B is reduced by ozone absorption below the stratospheric layer; UV-C is effectively extinguished below ~25 km.</div>
+</figure>
+
+<figure>
+<img src="file:///mnt/c/Users/jdobe/Downloads/Stratospheric_baloon/stratospheric-ozone-uv-profile/paper/spectrum.png" alt="Upwelling spectrum at selected altitudes"/>
+<div class="caption"><b>Figure 3.</b> Spectral upwelling irradiance <span class="var">E<sub>up</sub></span>(λ) at five altitudes, log scale. The short-wavelength cut-off imposed by the Hartley-band ozone absorption migrates from ~305 nm at the surface to ~260 nm at 40 km as the overlying ozone column decreases. Shaded regions mark the UV-C / UV-B / UV-A sub-bands.</div>
+</figure>
+
+<h3>3.3 Downwelling reference</h3>
+<p>Although the primary interest of the ground-facing instrument configuration is the upwelling flux, the same libRadtran runs provide the downwelling global irradiance <span class="var">E<sub>glo</sub></span> for context. Table 3 lists <span class="var">E<sub>glo</sub></span> in the same UV and visible bands.</p>
+<table class="data">
+<caption class="caption"><b>Table 3.</b> Band-integrated downwelling (global) irradiance <span class="var">E<sub>glo</sub></span> (W m⁻²) at representative altitudes; full-spectrum 250–1100 nm column for reference.</caption>
+<thead><tr><th>z [km]</th><th>UV 280–400</th><th>Visible 400–700</th><th>250–1100 total</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>41.32</td><td>284.84</td><td>605.31</td></tr>
+<tr><td>5</td><td>49.68</td><td>325.50</td><td>658.28</td></tr>
+<tr><td>10</td><td>56.56</td><td>368.50</td><td>711.66</td></tr>
+<tr><td>15</td><td>62.44</td><td>394.84</td><td>745.80</td></tr>
+<tr><td>20</td><td>67.17</td><td>406.26</td><td>762.75</td></tr>
+<tr><td>25</td><td>70.94</td><td>411.01</td><td>771.59</td></tr>
+<tr><td>30</td><td>74.04</td><td>413.11</td><td>776.93</td></tr>
+<tr><td>35</td><td>76.55</td><td>414.07</td><td>780.48</td></tr>
+<tr><td>40</td><td>78.39</td><td>414.49</td><td>783.07</td></tr>
+</tbody>
+</table>
+
+<h2>4. Discussion</h2>
+
+<h3>4.1 Sanity checks</h3>
+<p>At 40 km altitude, the total downwelling irradiance in the 250–1100 nm range is <b>783.074 W m⁻²</b>. The TOA horizontal solar flux at SZA = 38.37° would be <b>TSI · cos(SZA) = 1067.094 W m⁻²</b>; the 250–1100 nm window retains roughly 80% of the total solar constant, consistent with the Kurucz reference spectrum. The 40 km figure thus accounts for ~73.4% of the full-spectrum horizontal TOA flux, physically reasonable given (i) the 250–1100 nm window, (ii) Rayleigh absorption and scattering in the thin overlying column, and (iii) residual stratospheric ozone absorption of the UV-B/UV-C contribution.</p>
+
+<p>The upwelling-to-downwelling ratio confirms the expected wavelength dependence of Rayleigh backscattering (σ ∝ λ⁻⁴):</p>
+<table class="data" style="width: 70%;">
+<thead><tr><th>Altitude</th><th>UV (280–400) <span class="var">E<sub>up</sub>/E<sub>glo</sub></span></th><th>Visible (400–700) <span class="var">E<sub>up</sub>/E<sub>glo</sub></span></th></tr></thead>
+<tbody>
+<tr><td>0 km (surface)</td><td>5%</td><td>5%</td></tr>
+<tr><td>40 km</td><td>19.9%</td><td>7.96%</td></tr>
+</tbody>
+</table>
+<p>At the surface both ratios are dominated by the imposed surface albedo of 0.05 and thus are similar. At 40 km the UV ratio is substantially larger than the visible because the entire atmospheric column contributes diffuse Rayleigh backscatter, which is strongly wavelength-dependent.</p>
+
+<h3>4.2 Limitations</h3>
+<ul>
+<li><b>Cloud-free assumption.</b> The simulation does not include clouds. Cloud cover in the trajectory corridor would (a) substantially increase upwelling visible irradiance above the cloud deck (bright reflector), and (b) reduce UV below the deck. The predicted curves apply to a cloud-free case and should be treated as envelopes where cloud is present.</li>
+<li><b>Surface albedo.</b> A constant albedo of 0.05 (generic land/vegetation) is used. Trajectory-dependent mosaics of land, water, snow, or cloud-top would require a rescaling; for the upwelling band, <span class="var">E<sub>up</sub>(z)</span> scales roughly linearly with the albedo of the underlying surface within the cone subtending the solid angle at altitude.</li>
+<li><b>Aerosol.</b> libRadtran's default rural aerosol model is applied. Actual boundary-layer aerosol optical depth over NW Europe in late April can vary; the effect on UV-B and visible irradiance is at the several-percent level and does not change qualitative conclusions.</li>
+<li><b>CAMS time grid.</b> Pressure-level CAMS output is on a 3 h time grid; the closest point to the 13:00 CEST target is 14:00 CEST (+1 h). Stratospheric ozone varies on much longer timescales, so this offset is negligible.</li>
+<li><b>Temperature inconsistency.</b> Figure 1(a) shows ISA 1976 temperature for vertical coordinate consistency, while the radiative transfer internally uses libRadtran's <code>midlatitude_summer</code> profile (temperature differences &lt;3 K in the troposphere, sub-percent impact on integrated UV).</li>
+<li><b>SEN0321 at stratospheric density.</b> The DFRobot SEN0321 electrochemical ozone sensor is calibrated for surface-level pressures; at stratospheric densities (< 30 hPa) its response is outside the manufacturer-specified operating regime and the sensor data should be treated as qualitative above ~20 km.</li>
+</ul>
+
+<h3>4.3 Implications for the in-flight measurement</h3>
+<p>The LTR390 UV channel has a peak responsivity near 330 nm, falling within the UV-A sub-band. Ground-facing during ascent, it should see an upwelling UV-A irradiance rising from <b>2.07 W m⁻²</b> at launch to <b>15.5 W m⁻²</b> at 40 km (Table 2). The ALS (visible) channel, peaking near 555 nm, should see upwelling visible irradiance from <b>14.2 W m⁻²</b> to <b>33 W m⁻²</b>. Both channels will therefore span roughly one order of magnitude over the flight, and gain settings should be chosen to avoid saturation near the float altitude while retaining sensitivity at launch.</p>
+
+<h2>5. Conclusion</h2>
+<p>A complete pre-flight prediction of the atmospheric and upwelling radiative environment for ASGARD-XV Experiment 14 has been produced, combining a 72-hour CAMS ozone forecast with libRadtran DISORT radiative transfer. The headline figures are a total ozone column of <b>369.950 DU</b>, a stratospheric ozone peak of <b>7.61 ppmv at 31.1 km</b>, and upwelling irradiance at 40 km of <b>15.6 W m⁻²</b> (UV 280–400 nm) and <b>33 W m⁻²</b> (visible 400–700 nm). All input files, scripts, and outputs are archived in the experiment repository and can be re-executed with the <code>cams_download3.py</code> → <code>interpolation1.py</code> → <code>run_loop.sh</code> → <code>paper.py</code> pipeline. The predictions provide a quantitative reference against which the LTR390, SEN0321, and MS5611 sensor data will be compared after flight.</p>
+
+<h2>References</h2>
+<ol class="refs">
+<li>Emde, C., Buras-Schnell, R., Kylling, A., Mayer, B., Gasteiger, J., Hamann, U., Kylling, J., Richter, B., Pause, C., Dowling, T., Bugliaro, L. (2016). The libRadtran software package for radiative transfer calculations (version 2.0.2). <i>Geoscientific Model Development</i>, <b>9</b>, 1647–1672. doi:10.5194/gmd-9-1647-2016.</li>
+<li>Kurucz, R. L. (1992). Synthetic infrared spectra. In <i>Infrared Solar Physics</i>, IAU Symposium 154, ed. D. M. Rabin et al., Kluwer Academic Publishers, 523–531.</li>
+<li>U.S. Committee on Extension to the Standard Atmosphere (1976). <i>U.S. Standard Atmosphere, 1976</i>. NOAA-S/T 76-1562. U.S. Government Printing Office, Washington, DC.</li>
+<li>Copernicus Atmosphere Monitoring Service (CAMS), Atmosphere Data Store. <i>Global atmospheric composition forecasts</i>. European Centre for Medium-Range Weather Forecasts. <span class="monospace">https://ads.atmosphere.copernicus.eu</span> (accessed April 2026).</li>
+<li>Stamnes, K., Tsay, S.-C., Wiscombe, W., Jayaweera, K. (1988). Numerically stable algorithm for discrete-ordinate-method radiative transfer in multiple scattering and emitting layered media. <i>Applied Optics</i>, <b>27</b>, 2502–2509.</li>
+</ol>
+
+</body>
+</html>

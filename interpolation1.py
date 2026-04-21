@@ -6,7 +6,7 @@ from pathlib import Path
 lat = 50.798056
 lon = 4.357500
 
-ds = xr.open_dataset("cams_o3_profile_20260115_0000.nc", decode_timedelta=False)
+ds = xr.open_dataset("cams_o3_profile_20260423_1400local.nc", decode_timedelta=False)
 
 o3 = ds["go3"]  # ozone mass mixing ratio (kg/kg)
 
