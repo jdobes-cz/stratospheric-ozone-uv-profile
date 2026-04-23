@@ -24,7 +24,12 @@ wavelength 250 1100
 spline 250 1100 1
 
 # ---- surface ----
-albedo 0.05
+# Belgian late-spring land surface, CLEAR-SKY day (Open-Meteo confirms 0%
+# cloud cover throughout 2026-04-23 in Brussels with peak shortwave 821 W/m^2
+# at 14:00 local). Without clouds, the upward-facing sensor footprint sees
+# only the underlying mixed land (vegetation, cropland, urban) with a typical
+# springtime albedo of ~0.15. See Experiment/data_review.md §2.4.
+albedo 0.15
 
 # ---- output altitude ----
 zout_sea 0

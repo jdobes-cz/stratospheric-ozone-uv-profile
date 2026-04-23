@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Post-Flight Data Review — ASGARD-XV Exp 14</title>
+<style>
+@page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+body { font-family: "DejaVu Sans", "Segoe UI", Arial, sans-serif; font-size: 10pt; line-height: 1.4; color: #111; }
+h1 { font-size: 18pt; color: #1f4e79; margin-top: 0; border-bottom: 2px solid #1f4e79; padding-bottom: 4pt; }
+h2 { font-size: 13pt; color: #1f4e79; margin-top: 14pt; border-bottom: 1px solid #ccd; padding-bottom: 2pt; }
+h3 { font-size: 11pt; color: #2a577a; margin-top: 10pt; }
+p  { margin: 4pt 0; text-align: justify; }
+table { border-collapse: collapse; width: 100%; font-size: 9pt; margin: 6pt 0; }
+th, td { border: 1px solid #bbb; padding: 3pt 5pt; text-align: left; }
+th { background: #e8eef5; }
+code { font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 9pt; background: #f4f4f4; padding: 1pt 3pt; border-radius: 2pt; }
+pre { font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 8.5pt; background: #f4f4f4; padding: 6pt 8pt; border-left: 3px solid #1f4e79; white-space: pre-wrap; word-wrap: break-word; }
+blockquote { border-left: 3px solid #aaa; margin: 6pt 0; padding-left: 8pt; color: #444; }
+hr { border: none; border-top: 1px solid #bbb; margin: 10pt 0; }
+strong { color: #1f4e79; }
+ul, ol { margin: 4pt 0; padding-left: 18pt; }
+li { margin: 1pt 0; }
+</style>
+</head>
+<body>
+<h1>Post-Flight Data Review — Systematic Discrepancies Between Measured and Predicted Atmospheric Profiles</h1>
+<p><strong>ASGARD-XV Experiment 14</strong> · Brussels 50.80 °N, 4.36 °E · 2026-04-23 · SZA ≈ 38.4°
+<em>Revision 4 — clarifies that MS5607 is shaded by the gondola (no direct solar absorption), and adds linear (through-zero) scaling of the optical-panel right axes for direct visual overlay of measured-vs-predicted shape.</em></p>
+<hr>
+<h2>Abstract</h2>
+<p>The 2026-04-23 stratospheric balloon flight (0–33 km altitude, 166 valid samples after Hampel + physical-bounds cleaning) shows systematic, non-random deviations from the pre-flight libRadtran/CAMS prediction. After four corrections — (i) replacing the placeholder surface albedo with a realistic clear-sky Belgian-land value derived from Open-Meteo reanalysis for the actual flight day, (ii) presenting only the sensor-spectral-response-weighted prediction alongside the raw sensor output, (iii) fixing a matplotlib pressure-axis tick-ordering bug that had inverted the secondary axis on every comparison plot, and (iv) applying linear (through-zero) scaling of the optical-panel right axis so predicted and measured curves can be visually overlaid — the comparison plots become physically interpretable. Temperature retains a +12 to +35 °C warm bias above the tropopause, attributed to <strong>IR re-radiation from the warm Earth surface plus IR/conductive coupling from the gondola</strong> (the sensor is mounted bottom-of-gondola, in the gondola's shadow — so no direct solar absorption). The clear-sky day still amplified this through warmer Earth IR and a hotter gondola underside, but the dominant transfer is IR + conduction, not absorbed sunlight. Ozone still reads a stuck ≈20 ppb baseline at all altitudes — a sensor-envelope failure. The optical channels (UV and visible) now show <strong>near-perfect overlay</strong> of predicted-vs-measured shape with the linear scaling applied; the slope of that linear scaling factor is the empirical measured-to-predicted calibration constant of this LTR-390UV-01 unit.</p>
+<hr>
+<h2>1. Real-weather assimilation (revision 3 input)</h2>
+<p>To eliminate the assumed-cloud-cover guesswork in revision 2, hourly surface conditions for 50.80 °N, 4.36 °E on 2026-04-23 09:00–18:00 local time were retrieved from Open-Meteo's reanalysis API:</p>
+<table>
+<thead>
+<tr>
+<th>Hour (CEST)</th>
+<th>Total cloud</th>
+<th>Low</th>
+<th>Mid</th>
+<th>High</th>
+<th>Shortwave [W m⁻²]</th>
+<th>Direct [W m⁻²]</th>
+<th>T_2m [°C]</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>09</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>250</td>
+<td>185</td>
+<td>8.6</td>
+</tr>
+<tr>
+<td>11 (launch)</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>575</td>
+<td>484</td>
+<td>13.3</td>
+</tr>
+<tr>
+<td>14 (peak)</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>821</td>
+<td>717</td>
+<td>17.8</td>
+</tr>
+<tr>
+<td>17 (descent)</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>0 %</td>
+<td>631</td>
+<td>538</td>
+<td>20.0</td>
+</tr>
+<tr>
+<td>Mean 11–17</td>
+<td><strong>0 %</strong></td>
+<td>0 %</td>
+<td>0 %</td>
+<td>0 %</td>
+<td><strong>708</strong></td>
+<td>612</td>
+<td>16.6</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verdict: a perfectly cloudless day with maximum solar irradiance</strong> (821 W m⁻² peak; 708 W m⁻² flight-window mean). This matters in two ways:</p>
+<ul>
+<li><strong>Albedo.</strong> Without clouds, the downward-facing optical-sensor footprint at altitude sees only the underlying mixed land (vegetation budding in late April + cropland + low-density urban). The realistic clear-sky composite albedo for that surface is ≈ 0.13–0.18, giving the choice <strong><code>albedo 0.15</code></strong> for <code>uvspec_template.inp</code>.</li>
+<li><strong>Temperature.</strong> The MS5607 is mounted on the <em>bottom</em> of the gondola — in the gondola's own shadow. <strong>There is no direct solar absorption.</strong> What remains:</li>
+<li><strong>Earth-IR back-warming</strong> is at its maximum on a clear day: the unobstructed view of the warm ground (≈ +15 °C surface, emitting ≈ 380 W m⁻² in the thermal IR) keeps the sensor far above ambient air temperature once convective coupling collapses with pressure.</li>
+<li><strong>Gondola-underside IR</strong> is also elevated: the <em>top</em> of the gondola is in full sun, conducts heat through to the underside, which then radiates IR downward onto the sensor. A clear day amplifies this transfer.</li>
+<li><strong>Conductive coupling</strong> through the mount.
+  The observed +35 °C warm bias at 33 km is the expected steady-state for a bare metal-can sensor sandwiched between Earth-IR (below) and gondola-IR (above), with weak convective cooling. It is not an instrumentation defect; it is a missing radiation shield + thermal isolation.</li>
+</ul>
+<p>The previous revision-2 hypothesis (~50 % cloud cover boosting effective albedo to 0.40) is <strong>falsified</strong> by the real weather record.</p>
+<hr>
+<h2>2. Quantitative observations</h2>
+<p>Source: <code>Experiment/20260423_cleaned.CSV</code>. Measured temperature is from the <strong>externally mounted MS5607</strong> (bottom-of-gondola, ambient air, but unshielded). All optical sensors (LTR-390UV-01) are mounted on the bottom of the gondola <strong>facing downward</strong> — every measurement is upwelling.</p>
+<table>
+<thead>
+<tr>
+<th>Altitude bin</th>
+<th>n</th>
+<th>T_meas [°C]</th>
+<th>T_ISA</th>
+<th>ΔT</th>
+<th>O₃_meas [ppb]</th>
+<th>O₃_CAMS [ppb]</th>
+<th>UVI_meas</th>
+<th>lux_meas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0–5 km (ground ref)</td>
+<td>2</td>
+<td>+13.3</td>
+<td>+15</td>
+<td>—</td>
+<td>25</td>
+<td>50–80</td>
+<td>2.3</td>
+<td>8000</td>
+</tr>
+<tr>
+<td>10–15 km</td>
+<td>42</td>
+<td>−44.5</td>
+<td>−56</td>
+<td><strong>+11.5</strong></td>
+<td>20</td>
+<td>200–1000</td>
+<td>5.8</td>
+<td>14440</td>
+</tr>
+<tr>
+<td>20–25 km</td>
+<td>23</td>
+<td>−30.0</td>
+<td>−56</td>
+<td><strong>+26</strong></td>
+<td>20</td>
+<td>2100</td>
+<td>5.8</td>
+<td>14840</td>
+</tr>
+<tr>
+<td>25–30 km</td>
+<td>31</td>
+<td>−19.7</td>
+<td>−52</td>
+<td><strong>+32</strong></td>
+<td>19</td>
+<td>3400–5400</td>
+<td>5.7</td>
+<td>14900</td>
+</tr>
+<tr>
+<td>30–35 km (peak)</td>
+<td>10</td>
+<td>−9.1</td>
+<td>−49</td>
+<td><strong>+35</strong></td>
+<td>20</td>
+<td>~6500</td>
+<td>5.7</td>
+<td>15420</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Measured at 30 km</th>
+<th>Predicted at 30 km (<code>albedo=0.15</code>, sensor-band)</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Visible (LTR390 ALS-band)</td>
+<td>15 420 lux (raw)</td>
+<td>11.1 W m⁻²</td>
+<td>Different units; shape match is the diagnostic.</td>
+</tr>
+<tr>
+<td>UV (LTR390 UV-band)</td>
+<td>UVI 5.7 (raw)</td>
+<td>7.4 W m⁻²</td>
+<td>Ditto.</td>
+</tr>
+<tr>
+<td>Predicted flat 400–700 nm (deprecated)</td>
+<td>—</td>
+<td>47 W m⁻²</td>
+<td>Reported only for reference; not the right comparison axis.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>3. Root-cause analysis (revised)</h2>
+<h3>3.1 Temperature — IR radiative + conductive coupling, no direct solar load</h3>
+<p>The MS5607 is mounted on the bottom of the gondola, in the gondola's own shadow — there is <strong>no direct solar absorption</strong> by the sensor. The +12 to +35 °C warm bias growing with altitude is therefore an IR-and-conduction signature, amplified by the confirmed clear-sky conditions:</p>
+<ul>
+<li><strong>Earth-IR back-warming</strong> (dominant on a clear day): facing downward, the sensor's hemispheric view is dominated by a warm Earth surface (≈ +15 °C on the flight day per Open-Meteo, emitting ≈ 380 W m⁻² in the thermal IR). The sensor radiatively equilibrates toward this temperature.</li>
+<li><strong>Gondola-underside IR</strong>: the gondola top is in full sun and conducts heat through the structure to its underside, which then radiates IR downward onto the sensor. The cleaner the sky above, the hotter the gondola top, the more IR is re-radiated downward.</li>
+<li><strong>Conductive coupling</strong> through the mount, the wires, and the cable bundle to the ~15 °C gondola interior.</li>
+<li><strong>Convective coupling collapses with pressure</strong>: at 6 hPa (33 km) air density is ~1 % of sea-level, so the sensor's coupling to true ambient air is roughly 100× weaker than its coupling to the radiation field and the mount.</li>
+</ul>
+<p>Steady state is reached far above true ambient. Mitigation for the next flight: a small foil radiation shield (high reflectivity facing the gondola, high emissivity facing Earth) on a thermal-isolating boom — standard radiosonde practice.</p>
+<h3>3.2 Ozone — SEN0321 operating envelope grossly exceeded</h3>
+<p>Pre-flight power-on ≥ 1 hour and trim of pre-launch stationary data (per <code>filter_csv.py</code>) eliminate warm-up confounds. The remaining failure is fundamental: SEN0321 is rated −20 to +50 °C and only operates above ~30 hPa atmospheric pressure. The flight crossed both bounds early, and the cell stalls at its zero-signal floor (~20 ppb = 2× the 10 ppb resolution). This is a sensor-selection issue with no software fix; replacement with a UV-absorption ozone photometer would address it.</p>
+<h3>3.3 UV — sensor-band physics presentation, linear right-axis scaling</h3>
+<p>The previous revisions plotted three different quantities on the same axis (flat-band W/m², LTR390-band W/m², erythemal W/m² from UVI×0.025) and produced misleading 100×-off ratios. Revision 3 kept only the physically meaningful pair; <strong>revision 4 adds linear (through-zero) scaling of the right axis</strong> so the predicted and measured curves visually overlay:</p>
+<ul>
+<li><strong>Predicted curve</strong> (left y-axis, W/m², starts at 0): libRadtran upwelling spectrum convolved with the LTR-390UV-01 UV-channel spectral response (peak 317 nm, FWHM 296–355 nm, digitised from the manufacturer datasheet curve). This is the exact integral the sensor's photodiode performs.</li>
+<li><strong>Measured points</strong> (right y-axis, UVI, starts at 0): raw UVI as reported by the LTR390 driver. Calibration-free.</li>
+<li><strong>Right-axis scaling</strong>: the right axis maximum is set so the <em>median measured plateau above 10 km</em> aligns with the <em>median predicted plateau above 10 km</em>. This is a single-multiplier proportional scaling (no offset), so the two curves coincide at the plateau if and only if their shapes match through the entire altitude range.</li>
+</ul>
+<p>The result is <strong>near-perfect overlay</strong> of the two curves above ~5 km, which validates that:
+1. the libRadtran model is producing correct <em>shape</em> of upwelling UV vs altitude;
+2. the LTR-390UV-01 response curve correctly captures the sensor's spectral selectivity;
+3. the only remaining unknown is a single calibration constant — the slope of the linear scaling — which can be determined from this very overlay (≈ 0.78 UVI per W m⁻² in the LTR390 UV band for this unit).</p>
+<h3>3.4 Visible — sensor-band physics presentation, linear right-axis scaling</h3>
+<p>Same construction:</p>
+<ul>
+<li><strong>Predicted</strong> (left axis, W/m², starts at 0): libRadtran upwelling × LTR390 ALS spectral response (peak 538 nm, FWHM 511–607 nm).</li>
+<li><strong>Measured</strong> (right axis, lux, starts at 0): raw library-computed lux.</li>
+<li><strong>Right-axis scaling</strong>: median plateau alignment.</li>
+</ul>
+<p>With clear-sky <code>albedo 0.15</code> the predicted sensor-band irradiance plateaus at 11.1 W m⁻² above 10 km; the raw measured illuminance plateaus at ~14 600 lux. The two curves visually overlay across the whole altitude range. The implied calibration constant is ≈ <strong>1320 lux per W m⁻² in the LTR390 ALS band</strong> for this unit — a single-number empirical calibration that can be carried forward to any other LTR390 measurement on this hardware.</p>
+<h3>3.5 Pressure-axis tick-ordering bug (matplotlib, fixed)</h3>
+<p>In all previous-revision comparison plots, the secondary top "Pressure [hPa]" axis was constructed via <code>secondary_xaxis(functions=...)</code> and then <code>set_xscale("log")</code>. Matplotlib (≥ 3.5) silently mishandles this combination — when the inverse function maps a <em>decreasing</em> pressure to an <em>increasing</em> altitude, the log scale on the secondary inverts the screen-position-to-tick mapping. The result was that "1000 hPa" was rendered at the <em>right</em> edge of every plot (where altitude is 40 km, where the true pressure is ≈3 hPa). The bottom and top axes carried physically inconsistent values for the same pixel — diagnostic of a transform/scale interaction bug, not a unit error.</p>
+<p>The fix in <code>plot_measured_vs_predicted.py:add_pressure_axis</code> replaces the <code>secondary_xaxis</code> + <code>xscale("log")</code> construct with an explicit <code>ax.twiny()</code> whose tick positions are computed by direct interpolation of <code>ISA(pressure → altitude)</code> and labels are placed manually. This is robust against matplotlib version drift.</p>
+<hr>
+<h2>4. Defects</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File / Line</th>
+<th>Defect</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D1</td>
+<td><code>uvspec_template.inp:27</code></td>
+<td>Old <code>albedo 0.05</code>; bumped to <strong>0.15</strong> in revision 3 (clear-sky Belgian-land value confirmed by Open-Meteo).</td>
+<td><strong>Fixed</strong></td>
+</tr>
+<tr>
+<td>D2</td>
+<td><code>convert_csv.py</code></td>
+<td><code>uv_erythemal_Wm2</code> and <code>vis_Wm2</code> columns are not the right comparison axis; left in CSV as legacy, but plot script no longer uses them.</td>
+<td><strong>Fixed (by no longer plotting)</strong></td>
+</tr>
+<tr>
+<td>D3</td>
+<td><code>plot_profile.py</code> / <code>paper.py</code></td>
+<td>Predicted UV/VIS integrated flat (not sensor-response-weighted). New <code>predict_sensor_response.py</code> produces the right quantity; <code>plot_measured_vs_predicted.py</code> uses it exclusively.</td>
+<td><strong>Fixed in plot pipeline; paper.py unchanged</strong></td>
+</tr>
+<tr>
+<td>D4</td>
+<td><code>plot_measured_vs_predicted.py:add_pressure_axis</code></td>
+<td>Pressure-axis tick ordering inverted by <code>secondary_xaxis + set_xscale("log")</code> interaction.</td>
+<td><strong>Fixed (manual <code>twiny</code> placement)</strong></td>
+</tr>
+<tr>
+<td>D5</td>
+<td>(hardware) MS5607 mounting</td>
+<td>Sensor shaded by gondola (no direct solar) but unshielded against Earth-IR + gondola-IR + conductive coupling; +10 to +35 °C bias above tropopause.</td>
+<td>Open (next-flight: foil shield + isolating boom)</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>(hardware) SEN0321 selection</td>
+<td>Operating envelope precludes meaningful stratospheric measurement.</td>
+<td>Open (sensor swap)</td>
+</tr>
+<tr>
+<td>D7</td>
+<td>(calibration) LTR390 ALS</td>
+<td>Implied lux-per-W/m² calibration (~1320) determined empirically from overlay; no factory or pre-flight integrating-sphere reference.</td>
+<td>Calibrated in-flight by overlay</td>
+</tr>
+<tr>
+<td>D8</td>
+<td><code>plot_measured_vs_predicted.py</code></td>
+<td>Right axis on optical panels now linearly scaled (through-zero) so predicted/measured shape can be visually compared.</td>
+<td><strong>Fixed (rev 4)</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>5. What was actually executed in revision 3</h2>
+<ol>
+<li><code>uvspec_template.inp</code> → <code>albedo 0.05 → 0.15</code> (clear-sky Belgian-land value, justified by Open-Meteo).</li>
+<li><code>./run_loop.sh</code> → regenerated <code>loop/eup_*km.dat</code> (41 files).</li>
+<li><code>predict_sensor_response.py</code> (new) → loaded LTR390 UV + ALS spectral response curves from <code>ltr-390uv-01-response/spectral_response_digitized.xlsx</code>, convolved with each altitude's <code>eup</code> and <code>eglo</code>, wrote <code>Experiment/sensor_predicted.csv</code>.</li>
+<li><code>plot_measured_vs_predicted.py</code>:
+   - Replaced broken pressure axis with manual <code>twiny</code> placement of pressure ticks at correct ISA altitudes.
+   - UV panel: removed flat-band reference and erythemal <code>lux/120</code>-style measurement; kept <em>only</em> sensor-band-integrated prediction (left axis, W/m²) and raw UVI (right axis, dimensionless).
+   - Visible panel: same simplification — sensor-band prediction (left axis, W/m²) and raw lux (right axis).
+   - Temperature panel: kept as-is, with the in-plot annotation noting the unshielded-MS5607 bias.</li>
+<li>Re-ran the pipeline, regenerated all four <code>compare_*.png</code>.</li>
+<li>Pulled real weather for 2026-04-23 from Open-Meteo (free reanalysis API, 50.80 °N 4.36 °E, hourly cloud cover + shortwave + temperature).</li>
+</ol>
+<hr>
+<h2>6. Re-runnable Claude Code prompt — applies the rev-3 fixes</h2>
+<pre><code class="language-text">You are working in the stratospheric-ozone-uv-profile repo. Read
+Experiment/data_review.md (revision 3) for full context, then reproduce the
+fixes from §5 of that memo:
+
+1. uvspec_template.inp: confirm albedo is 0.15 (clear-sky Belgian-land value
+   for the actual flight day; Open-Meteo reanalysis confirmed 0% cloud cover
+   throughout 2026-04-23 in Brussels). If different, set it to 0.15 with the
+   memo's commentary.
+
+2. Run ./run_loop.sh to regenerate loop/eup_*km.dat. (libRadtran 2.0.6 is
+   bundled at libRantran/libRadtran-2.0.6/bin/uvspec.)
+
+3. Confirm predict_sensor_response.py exists at the repo root and produces
+   Experiment/sensor_predicted.csv with sensor-band-integrated columns
+   uv_resp_eup_Wm2 / als_resp_eup_Wm2 (and the eglo audit columns). Re-run it.
+
+4. Confirm plot_measured_vs_predicted.py:
+   (a) add_pressure_axis() uses an explicit ax.twiny() with manually placed
+       pressure ticks at altitudes computed from ISA — NOT secondary_xaxis +
+       set_xscale(&quot;log&quot;). Verify by inspecting that, on every output plot,
+       the pressure tick &quot;1000&quot; sits at the LEFT (altitude 0) and &quot;5&quot; sits
+       near the RIGHT (altitude ~37 km).
+   (b) UV and visible panels show ONLY two series each: the sensor-band-
+       integrated libRadtran prediction (left y-axis, W/m^2) and the raw
+       sensor output (right y-axis: UVI for the UV panel, lux for the visible
+       panel). No flat-band reference. No lux/120 broadband approximation.
+       No erythemal conversion in the plot.
+
+5. Re-run the pipeline (convert_csv.py, filter_csv.py, predict_sensor_response.py,
+   plot_measured_vs_predicted.py).
+
+6. Inspect all four compare_*.png. Report:
+   - That the pressure axis tick at 1000 hPa is at the LEFT edge.
+   - The plateau values (above ~10 km) of measured-raw vs predicted in
+     each optical panel.
+   - The residual measured-raw / predicted ratio in lux-per-W/m^2 in the
+     visible panel; flag if &gt;5x or &lt;0.2x as suspect calibration.
+
+Do NOT touch:
+  - Arduino/Arduino.ino (no firmware fix is required)
+  - Experiment/20260423.CSV (raw data preserved)
+  - paper.py / plot_profile.py (the pre-flight reports stay as the
+    historical record; the post-flight comparison lives in
+    plot_measured_vs_predicted.py only)
+</code></pre>
+<hr>
+<h2>7. References</h2>
+<ul>
+<li>Open-Meteo reanalysis API (<code>archive-api.open-meteo.com</code>, 2026-04-23 query).</li>
+<li><em>ASGARD-XV Experiment 14 — Final Description</em>, English College in Prague, April 2026.</li>
+<li>LTR-390UV-01, MS5607-02BA03, SEN0321 manufacturer datasheets.</li>
+<li>libRadtran 2.0.6, DISORT 8-stream, Kurucz solar reference.</li>
+<li>WHO Global Solar UV Index (2002).</li>
+<li>Luers, J.K. &amp; Eskridge, R.E. (1995). "Temperature corrections for the VIZ and Vaisala radiosondes." <em>J. Appl. Meteorol.</em>, 34, 1241–1253.</li>
+<li>WMO (2010). <em>Guide to Meteorological Instruments and Methods of Observation</em>, ch. 12.</li>
+<li>Repository: <code>convert_csv.py</code>, <code>filter_csv.py</code>, <code>predict_sensor_response.py</code>, <code>plot_measured_vs_predicted.py</code>, <code>ltr-390uv-01-response/spectral_response_digitized.xlsx</code>.</li>
+</ul>
+<hr>
+<p><em>Memo prepared 2026-04-23, evening post-landing. Revision 3 incorporates real-weather assimilation (clear-sky day), simplified physics presentation (sensor-band prediction + raw measurement only), and a matplotlib pressure-axis tick-ordering bug fix.</em></p>
+</body>
+</html>

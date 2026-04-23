@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Presentation Points — ASGARD-XV Exp 14 Data Analysis</title>
+<style>
+@page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+body { font-family: "DejaVu Sans", "Segoe UI", Arial, sans-serif; font-size: 10pt; line-height: 1.4; color: #111; }
+h1 { font-size: 18pt; color: #1f4e79; margin-top: 0; border-bottom: 2px solid #1f4e79; padding-bottom: 4pt; }
+h2 { font-size: 13pt; color: #1f4e79; margin-top: 14pt; border-bottom: 1px solid #ccd; padding-bottom: 2pt; }
+h3 { font-size: 11pt; color: #2a577a; margin-top: 10pt; }
+p  { margin: 4pt 0; text-align: justify; }
+table { border-collapse: collapse; width: 100%; font-size: 9pt; margin: 6pt 0; }
+th, td { border: 1px solid #bbb; padding: 3pt 5pt; text-align: left; }
+th { background: #e8eef5; }
+code { font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 9pt; background: #f4f4f4; padding: 1pt 3pt; border-radius: 2pt; }
+pre { font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 8.5pt; background: #f4f4f4; padding: 6pt 8pt; border-left: 3px solid #1f4e79; white-space: pre-wrap; word-wrap: break-word; }
+blockquote { border-left: 3px solid #aaa; margin: 6pt 0; padding-left: 8pt; color: #444; }
+hr { border: none; border-top: 1px solid #bbb; margin: 10pt 0; }
+strong { color: #1f4e79; }
+ul, ol { margin: 4pt 0; padding-left: 18pt; }
+li { margin: 1pt 0; }
+</style>
+</head>
+<body>
+<h1>Data Analysis — From Raw Arduino CSV to <code>compare_*.png</code></h1>
+<p><strong>Flight:</strong> ASGARD-XV Exp 14 · Brussels 50.80 °N, 4.36 °E · 2026-04-23 · SZA ≈ 38.4°
+<strong>Inputs:</strong> <code>Experiment/20260423.CSV</code> (raw SD log, no header) + libRadtran pre-flight simulation
+<strong>Outputs:</strong> <code>compare_temperature.png</code>, <code>compare_ozone.png</code>, <code>compare_uv.png</code>, <code>compare_visible.png</code></p>
+<hr>
+<h2>1. Updates in assumptions (pre-flight → post-flight model)</h2>
+<ul>
+<li><strong>Surface albedo: 0.05 → 0.15</strong> (<code>uvspec_template.inp:32</code>). The 0.05 placeholder (open-ocean / dark asphalt) was physically wrong for a Belgian land overflight. Open-Meteo reanalysis for 2026-04-23 over Brussels confirmed <strong>0 % cloud cover all day</strong> (peak 821 W/m² shortwave at 14:00 CEST), so the downward-facing sensor footprint sees only mixed spring land (vegetation budding + cropland + low-density urban) → realistic composite albedo ≈ 0.13–0.18.</li>
+<li><strong>Falsified earlier hypothesis</strong> that ~50 % cloud cover was boosting <em>effective</em> albedo to 0.40. The real weather record ruled that out.</li>
+<li><strong>Sensor viewing geometry re-stated</strong>: LTR-390UV-01 is mounted bottom-of-gondola <strong>facing down</strong> → every optical measurement is <strong>upwelling</strong>, not downwelling. All comparisons now use libRadtran's <code>eup</code> column, not <code>edn</code>/<code>eglo</code>.</li>
+<li><strong>MS5607 thermal boundary condition clarified</strong>: sensor is <strong>shaded by the gondola</strong> (no direct solar absorption). The observed warm bias is therefore purely <strong>Earth-IR back-warming + gondola-underside IR + conductive coupling through the mount</strong> — not absorbed sunlight. Corrects a revision-2 misattribution.</li>
+<li><strong>Spectral presentation assumption changed</strong>: predicted UV / visible must be <strong>convolved with the LTR-390UV-01 spectral response</strong> (UV: peak 317 nm, FWHM 296–355 nm; ALS: peak 538 nm, FWHM 511–607 nm) before comparison — flat band-integrated W/m² is not the quantity the sensor actually reports.</li>
+</ul>
+<hr>
+<h2>2. Updates in theoretical results (libRadtran outputs)</h2>
+<ul>
+<li><strong>Regenerated all 41 altitude steps</strong> via <code>./run_loop.sh</code> → <code>loop/eup_{0..40}km.dat</code> with the new albedo = 0.15 and the clear-sky midlatitude-summer atmosphere.</li>
+<li><strong>Upwelling UV (LTR390 UV band, <code>predict_sensor_response.py</code>)</strong>: grows from <strong>2.3 W/m² at ground → 7.5 W/m² asymptote above ~20 km</strong> (previously underestimated by the 0.05 albedo placeholder).</li>
+<li><strong>Upwelling visible (LTR390 ALS band)</strong>: <strong>12.6 W/m² at ground → ~11.1 W/m² plateau above 10 km</strong> (roughly flat with altitude, as expected for upwelling from a diffuse land surface).</li>
+<li><strong>Deprecated the old "flat 400–700 nm" prediction (47 W/m²)</strong> — it was ~4× too high because it ignored the sensor's narrow ALS passband. Kept in the memo for reference only.</li>
+<li><strong>Ozone profile unchanged</strong>: CAMS forecast remains the dominant input (stratospheric peak ~6500 ppb near 30 km); the SEN0321 measurement is unusable (see §3) so there is no reason to re-fit.</li>
+<li><strong>ISA 1976 temperature profile unchanged</strong>: used as the theoretical baseline against measured MS5607; extends to 47 km via the piecewise lapse-rate model (<code>plot_measured_vs_predicted.py:49-58</code>).</li>
+</ul>
+<hr>
+<h2>3. Postprocessing of the data (raw CSV → <code>compare_*.png</code>)</h2>
+<h3>Stage A — <code>convert_csv.py</code>: byte-clean &amp; unit conversion</h3>
+<ul>
+<li>Stripped 0xFF filler bytes from one corrupted SD row (abrupt mid-write truncation).</li>
+<li>Parsed the 10-column Arduino log with per-sensor validity bits (<code>FLAG_UVS_OK</code>, <code>FLAG_ALS_OK</code>, <code>FLAG_MS5607_OK</code>, <code>FLAG_O3_OK</code>).</li>
+<li>Derived 4 physical columns: <code>isa_alt_km</code> (pressure → altitude via ISA 1976), <code>o3_ppmv</code>, <code>uv_erythemal_Wm2</code> (legacy), <code>vis_Wm2</code> (legacy). Invalid-flag rows → NaN.</li>
+<li>Output: <code>Experiment/20260423_converted.CSV</code> (~54 kB, 14 columns).</li>
+</ul>
+<h3>Stage B — <code>filter_csv.py</code>: clean &amp; trim to flight window</h3>
+<ul>
+<li><strong>Step 1</strong> physical-bounds clipping (e.g. <code>pressure 0–1100 hPa</code>, <code>temp −70…+50 °C</code>, <code>ozone 0–500 ppb</code>, <code>als ≤ 262 142</code> to drop 2¹⁸−1 saturation).</li>
+<li><strong>Step 2</strong> per-sensor Hampel rolling filter (median ± k · 1.4826 · MAD; windows 7–15, k = 3–4) → spike rejection without smoothing the signal.</li>
+<li><strong>Step 3</strong> trim stationary ground tails: keep only rows with altitude &gt; 1 km, plus 2 padding rows each side.</li>
+<li><strong>Step 4</strong> recompute derived columns from the cleaned sources.</li>
+<li>Output: <code>Experiment/20260423_cleaned.CSV</code> (<strong>166 valid samples, 0–33 km</strong>).</li>
+</ul>
+<h3>Stage C — <code>predict_sensor_response.py</code>: spectral convolution</h3>
+<ul>
+<li>Loaded digitised LTR-390UV-01 response curves from <code>ltr-390uv-01-response/spectral_response_digitized.xlsx</code>, normalised each channel to peak = 1.</li>
+<li>For each <code>loop/eup_{z}km.dat</code> (z = 0…40 km): interpolated response onto libRadtran's 1-nm grid, band-weighted the upwelling spectrum (<code>np.trapezoid(flux · R, λ)</code>), converted mW/m²/nm → W/m².</li>
+<li>Output: <code>Experiment/sensor_predicted.csv</code> (41 rows × 6 cols — the only honest comparison axis for LTR390).</li>
+</ul>
+<h3>Stage D — <code>plot_measured_vs_predicted.py</code>: overlay &amp; scaling</h3>
+<ul>
+<li><strong>Four figures, shared pressure-axis helper</strong> with manual <code>ax.twiny()</code> placement at ISA altitudes (fixes a matplotlib ≥ 3.5 bug where <code>secondary_xaxis + set_xscale("log")</code> silently inverted the top axis — previously "1000 hPa" rendered at 40 km).</li>
+<li><strong>compare_temperature.png</strong> — ISA line vs MS5607 scatter; in-plot caveat about the unshielded-sensor warm bias (+12 … +35 °C above the tropopause).</li>
+<li><strong>compare_ozone.png</strong> — CAMS profile vs SEN0321 scatter; SEN0321 stalls at ~20 ppb floor (operating envelope exceeded — sensor-selection failure, no software fix).</li>
+<li><strong>compare_uv.png / compare_visible.png</strong> — <strong>dual-axis</strong> with <strong>linear through-zero scaling</strong>: left axis = predicted W/m² in the sensor band; right axis = raw UVI / raw lux, with ymax chosen so the <em>median plateau above 10 km</em> matches the predicted plateau. Since the scaling is a single multiplier (no offset), the curves overlay everywhere if and only if shapes match.</li>
+<li><strong>Empirical calibration constants falling out of the overlay</strong>:<ul>
+<li>LTR390 UV channel: <strong>≈ 0.78 UVI per W/m²</strong> in the LTR390 UV band.</li>
+<li>LTR390 ALS channel: <strong>≈ 1320 lux per W/m²</strong> in the LTR390 ALS band.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2>4. Key take-aways for the presentation</h2>
+<ul>
+<li><strong>Optical channels (UV + visible): near-perfect shape overlay above 5 km</strong> → libRadtran model is correct, LTR390 spectral response is correctly captured; the only unknown is a single multiplicative calibration constant, <strong>which this flight itself produced</strong>.</li>
+<li><strong>Temperature: systematic +12 … +35 °C warm bias</strong> above the tropopause, explained by Earth-IR + gondola-IR + conductive coupling at low convective density. Mitigation = foil radiation shield on a thermally isolating boom (standard radiosonde practice).</li>
+<li><strong>Ozone: SEN0321 unusable above ~30 hPa / below −20 °C</strong> — operating envelope grossly exceeded; next flight needs a UV-absorption ozone photometer.</li>
+<li><strong>One matplotlib transform bug</strong> (pressure-axis inversion) was silently corrupting every previous comparison plot — now fixed with explicit tick placement.</li>
+</ul>
+<hr>
+<p><em>Compiled 2026-04-23 from <code>Experiment/data_review.md</code> (rev. 4). For the full root-cause discussion see §3 of that memo.</em></p>
+</body>
+</html>

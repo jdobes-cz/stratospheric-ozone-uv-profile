@@ -66,6 +66,14 @@ Desktop.ini
 *.mov
 *.mkv
 
+# Raw SD-card datalog from Roels experiment is >100 MB; commit the zipped copy instead.
+Roels_experiment/DATALOG_Official.TXT
+
+# -------------------------
+# Office lock files (Excel/Word create these while the file is open)
+# -------------------------
+~$*
+
 # -------------------------
 # libRadtran (do not commit vendored binaries/data; keep empty folder only)
 # -------------------------
