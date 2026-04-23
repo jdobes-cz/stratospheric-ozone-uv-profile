@@ -59,6 +59,18 @@ def isa_pressure_hPa(z_m: np.ndarray) -> np.ndarray:
     return P
 
 
+def isa_temp_K(z_m: np.ndarray) -> np.ndarray:
+    z = np.asarray(z_m, dtype=float)
+    T = np.full(z.shape, np.nan)
+    for i in range(LAPSE.size):
+        mask = (z >= HB_M[i]) & (z <= HB_M[i + 1])
+        T[mask] = TB[i] + LAPSE[i] * (z[mask] - HB_M[i])
+    above = z > HB_M[-1]
+    if np.any(above):
+        T[above] = TB[-1] + LAPSE[-1] * (z[above] - HB_M[-1])
+    return T
+
+
 # ---------------------------------------------------------------------------
 # O3 profile → ppmv at each km
 # ---------------------------------------------------------------------------
@@ -69,15 +81,21 @@ o3 = pd.read_csv(
     names=["p_hPa", "mmr"],
 ).sort_values("p_hPa").reset_index(drop=True)
 
+K_B = 1.380649e-23  # Boltzmann [J/K]
+
 altitudes_km = np.arange(0, 41)
 p_at_alt_hPa = isa_pressure_hPa(altitudes_km * 1000.0)
+T_at_alt_K = isa_temp_K(altitudes_km * 1000.0)
+
 # Interpolate mmr in log-pressure
 mmr_at_alt = np.interp(
     np.log(p_at_alt_hPa),
     np.log(o3["p_hPa"].to_numpy()),
     o3["mmr"].to_numpy(),
 )
-ppmv_at_alt = mmr_at_alt * 0.603 * 1e6  # mmr → volume mixing ratio (ppmv)
+ppmv_at_alt = mmr_at_alt * 0.603 * 1e6                   # ppmv (volume mixing ratio)
+n_air_cm3 = (p_at_alt_hPa * 100.0) / (K_B * T_at_alt_K) / 1e6  # molec/cm³
+n_o3_cm3 = ppmv_at_alt * 1e-6 * n_air_cm3               # O3 number density [molec/cm³]
 
 
 # ---------------------------------------------------------------------------
@@ -112,6 +130,7 @@ for z_km in altitudes_km:
 irr = pd.DataFrame(rows).sort_values("z_km").reset_index(drop=True)
 z = irr["z_km"].to_numpy()
 irr["ppmv"] = np.interp(z, altitudes_km, ppmv_at_alt)
+irr["n_o3"] = np.interp(z, altitudes_km, n_o3_cm3)  # molec/cm³
 
 # dE/dz via central differences (np.gradient handles uneven spacing and edges)
 irr["duv_dz"] = np.gradient(irr["uv_up"].to_numpy(), z)
@@ -122,7 +141,7 @@ irr["dln_vis_dz"] = irr["dvis_dz"] / irr["vis_up"]
 
 
 # ---------------------------------------------------------------------------
-# Plot — two panels vs local O3 ppmv:
+# Plot — two panels vs local O3 number density:
 #   left:  dE_up/dz  on log-y   (absolute gradient, mW m^-2 km^-1)
 #   right: d(lnE)/dz on log-y   (fractional gradient, km^-1, ~ extinction coef)
 # ---------------------------------------------------------------------------
@@ -130,20 +149,20 @@ fig, (ax_abs, ax_rel) = plt.subplots(1, 2, figsize=(13, 6.5))
 
 for ax in (ax_abs, ax_rel):
     ax.set_yscale("log")
-    ax.set_xlabel(r"Local O$_3$ concentration  [ppmv]")
+    ax.set_xlabel(r"Local O$_3$ number density  [molec cm$^{-3}$]")
     ax.grid(True, which="both", alpha=0.3)
 
-ax_abs.plot(irr["ppmv"], irr["duv_dz"], color="tab:purple",
+ax_abs.plot(irr["n_o3"], irr["duv_dz"], color="tab:purple",
             marker="o", ms=6, lw=2, label="UV 280–400 nm")
-ax_abs.plot(irr["ppmv"], irr["dvis_dz"], color="tab:orange",
+ax_abs.plot(irr["n_o3"], irr["dvis_dz"], color="tab:orange",
             marker="s", ms=6, lw=2, label="Visible (ambient) 400–700 nm")
 ax_abs.set_ylabel(r"$dE_\mathrm{up}/dz$   [mW m$^{-2}$ km$^{-1}$]  (log)")
 ax_abs.set_title("Absolute altitude-gradient")
 ax_abs.legend(loc="best", fontsize=10)
 
-ax_rel.plot(irr["ppmv"], irr["dln_uv_dz"], color="tab:purple",
+ax_rel.plot(irr["n_o3"], irr["dln_uv_dz"], color="tab:purple",
             marker="o", ms=6, lw=2, label="UV 280–400 nm")
-ax_rel.plot(irr["ppmv"], irr["dln_vis_dz"], color="tab:orange",
+ax_rel.plot(irr["n_o3"], irr["dln_vis_dz"], color="tab:orange",
             marker="s", ms=6, lw=2, label="Visible (ambient) 400–700 nm")
 ax_rel.set_ylabel(r"$d(\ln E_\mathrm{up})/dz$   [km$^{-1}$]  (log)")
 ax_rel.set_title("Fractional gradient  (≈ local extinction coef.)")
@@ -153,16 +172,16 @@ for _, r in irr.iterrows():
     zi = int(round(r["z_km"]))
     if zi in (0, 5, 10, 15, 20, 25, 30, 35, 40):
         ax_abs.annotate(f"{zi} km",
-                        xy=(r["ppmv"], r["duv_dz"]),
+                        xy=(r["n_o3"], r["duv_dz"]),
                         xytext=(5, 5), textcoords="offset points",
                         fontsize=7, color="tab:purple")
         ax_rel.annotate(f"{zi} km",
-                        xy=(r["ppmv"], r["dln_uv_dz"]),
+                        xy=(r["n_o3"], r["dln_uv_dz"]),
                         xytext=(5, 5), textcoords="offset points",
                         fontsize=7, color="tab:purple")
 
 fig.suptitle(
-    "Upward-irradiance altitude-gradient vs local O$_3$  |  "
+    "Upward-irradiance altitude-gradient vs local O$_3$ number density  |  "
     "Brussels 50.80°N, 4.36°E  |  2026-04-23 14:00 CEST  (SZA 38.4°)",
     fontsize=11,
 )
@@ -171,4 +190,6 @@ out = Path("uv_vs_o3.png")
 fig.savefig(out, dpi=140)
 print(f"Saved: {out.resolve()}")
 print()
-print(irr[["z_km", "ppmv", "uv_up", "vis_up", "duv_dz", "dvis_dz"]].round(3).to_string(index=False))
+print(irr[["z_km", "ppmv", "n_o3", "uv_up", "vis_up", "duv_dz", "dvis_dz"]]
+      .assign(n_o3=lambda d: d["n_o3"].map(lambda v: f"{v:.2e}"))
+      .round(3).to_string(index=False))
