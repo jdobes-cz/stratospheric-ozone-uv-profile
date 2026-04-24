@@ -97,6 +97,17 @@ def isa_altitude_km(p_hpa):
     return z / 1000.0
 
 
+def hampel_filter(s, window, k):
+    """Replace outliers with NaN. Outlier if |x - rolling_median| > k * 1.4826 * rolling_MAD.
+    Mirrors filter_csv.py so raw-data overlays use the same 'not erratic' rule."""
+    s = s.astype(float)
+    med = s.rolling(window, center=True, min_periods=3).median()
+    mad = 1.4826 * (s - med).abs().rolling(window, center=True, min_periods=3).median()
+    threshold = k * mad.where(mad > 0, np.inf)
+    outlier = (s - med).abs() > threshold
+    return s.mask(outlier, np.nan)
+
+
 # ---------------------------------------------------------------------------
 # Load predicted data (same as plot_profile.py)
 # ---------------------------------------------------------------------------
@@ -229,13 +240,61 @@ plt.close(fig)
 # 2. Ozone
 # ---------------------------------------------------------------------------
 fig, ax = new_fig("CAMS ozone forecast vs measured SEN0321")
-ax.plot(o3["z_km"], o3["o3_ppmv"], color="tab:blue", marker="o", ms=3, **PRED_KW)
+ax.plot(o3["z_km"], o3["o3_ppmv"], color="tab:blue", **PRED_KW)
 m = meas.dropna(subset=["isa_alt_km", "o3_ppmv"])
 ax.scatter(m["isa_alt_km"], m["o3_ppmv"], color="black", **MEAS_KW)
 ax.set_ylabel("Ozone [ppmv]")
 ax.legend(loc="best")
 fig.tight_layout(rect=(0, 0, 1, 0.95))
 fig.savefig(ROOT / "compare_ozone.png", dpi=140)
+ozone_ylim = ax.get_ylim()
+plt.close(fig)
+
+# ---------------------------------------------------------------------------
+# 2b. Ozone with raw (unfiltered) sensor overlay
+# ---------------------------------------------------------------------------
+# Reload the pre-filter converted CSV and apply ONLY the pressure cleaning
+# rules from filter_csv.py (physical bounds + Hampel window=7, k=3.0) so the
+# overlay shows every raw ozone reading whose pressure row is not erratic.
+raw = pd.read_csv(ROOT / "Experiment" / "20260423_converted.CSV")
+raw["_ts"] = pd.to_datetime(raw["timestamp"], format="%Y/%m/%d %H:%M:%S")
+raw = raw.sort_values("_ts").reset_index(drop=True)
+
+p_raw = raw["pressure_mbar"].astype(float)
+p_raw = p_raw.where((p_raw > 0.0) & (p_raw <= 1100.0))
+p_raw = hampel_filter(p_raw, 7, 3.0)
+
+raw_alt_km = isa_altitude_km(p_raw.to_numpy())
+raw_o3_ppmv = (raw["ozone_ppb"] / 1000.0).to_numpy()
+raw_mask = ~np.isnan(raw_alt_km) & ~np.isnan(raw_o3_ppmv)
+raw_x = raw_alt_km[raw_mask]
+raw_y = raw_o3_ppmv[raw_mask]
+
+fig, ax = new_fig("CAMS ozone forecast vs measured SEN0321 (raw + filtered)")
+ax.scatter(raw_x, raw_y,
+           color="lightcoral", marker=".", s=10, alpha=0.6, zorder=1,
+           label="Measured raw (pressure-valid rows only)")
+ax.plot(o3["z_km"], o3["o3_ppmv"], color="tab:blue", **PRED_KW)
+m = meas.dropna(subset=["isa_alt_km", "o3_ppmv"])
+ax.scatter(m["isa_alt_km"], m["o3_ppmv"], color="black", **MEAS_KW)
+ax.set_ylabel("Ozone [ppmv]")
+ax.set_ylim(ozone_ylim)
+
+y_lo, y_hi = ozone_ylim
+above = raw_y > y_hi
+below = raw_y < y_lo
+if above.any():
+    ax.scatter(raw_x[above], np.full(above.sum(), y_hi),
+               marker="^", s=30, color="lightcoral", alpha=0.9, zorder=1,
+               clip_on=False, label="Raw above range")
+if below.any():
+    ax.scatter(raw_x[below], np.full(below.sum(), y_lo),
+               marker="v", s=30, color="lightcoral", alpha=0.9, zorder=1,
+               clip_on=False, label="Raw below range")
+
+ax.legend(loc="best")
+fig.tight_layout(rect=(0, 0, 1, 0.95))
+fig.savefig(ROOT / "compare_ozone_plus_raw.png", dpi=140)
 plt.close(fig)
 
 # ---------------------------------------------------------------------------
@@ -308,5 +367,5 @@ fig.savefig(ROOT / "compare_visible.png", dpi=140)
 plt.close(fig)
 
 print("Saved:")
-for name in ("compare_temperature.png", "compare_ozone.png", "compare_uv.png", "compare_visible.png"):
+for name in ("compare_temperature.png", "compare_ozone.png", "compare_ozone_plus_raw.png", "compare_uv.png", "compare_visible.png"):
     print(f"  {(ROOT / name).resolve()}")
