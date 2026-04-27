@@ -320,14 +320,15 @@ section {
   border-radius: 4px;
 }
 
-/* Fade-in on scroll */
-.reveal {
+/* Fade-in on scroll. Gated on .js so without working JS,
+   content stays visible (default opacity/transform) instead of stuck invisible. */
+.js .reveal {
   opacity: 0;
   transform: translateY(40px);
   transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.reveal.visible {
+.js .reveal.visible {
   opacity: 1;
   transform: translateY(0);
 }
@@ -602,6 +603,12 @@ section {
   transform: scale(1.03);
   border-color: rgba(71,139,235,0.25);
   box-shadow: 0 8px 40px rgba(71,139,235,0.08);
+}
+
+.gallery-item picture {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .gallery-item img,

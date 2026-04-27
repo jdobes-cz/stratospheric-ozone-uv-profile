@@ -217,18 +217,24 @@
   });
 
   // ========== Scroll-based reveal animations ==========
-  const revealElements = document.querySelectorAll('.reveal');
-  const revealObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-        }
-      });
-    },
-    { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
-  );
-  revealElements.forEach((el) => revealObserver.observe(el));
+  // Wrapped in try/catch so a stray exception (e.g. browser-extension errors
+  // bubbling into the page) can never leave .reveal elements stuck at opacity:0.
+  try {
+    const revealElements = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0, rootMargin: '0px 0px -50px 0px' }
+    );
+    revealElements.forEach((el) => revealObserver.observe(el));
+  } catch (e) {
+    document.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
+  }
 
   // ========== Counter animation for stats ==========
   const statNumbers = document.querySelectorAll('.stat .number[data-count]');
@@ -321,7 +327,7 @@
       lightboxVideo.style.display = 'none';
       lightboxVideo.pause();
       lightboxVideo.src = '';
-      lightboxImg.src = img.src;
+      lightboxImg.src = img.dataset.fullsrc || img.currentSrc || img.src;
       lightboxImg.style.display = '';
     }
     lightboxCaption.textContent = getCaption(item);

@@ -65,6 +65,7 @@ Desktop.ini
 *.mp4
 *.mov
 *.mkv
+!Vltava/images/optimized/*.mp4
 
 # Raw SD-card datalog from Roels experiment is >100 MB; commit the zipped copy instead.
 Roels_experiment/DATALOG_Official.TXT
